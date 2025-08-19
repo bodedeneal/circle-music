@@ -1,311 +1,215 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Growing Ball Bounce + MP3</title>
-  <style>
-    :root {
-      --ink: #111;
-      --ink-soft: #666;
-      --accent: #0b79d0;
-      --frame: #eee;
-    }
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: #fff; /* keep background white */
-      color: var(--ink);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      height: 100%;
-    }
-    .wrap {
-      max-width: 900px;
-      margin: 24px auto 32px;
-      padding: 0 16px;
-    }
-    h1 { margin: 0 0 12px; font-size: 20px; font-weight: 700; }
-    .controls {
-      display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px;
-    }
-    input[type="file"] {
-      border: 1px solid #ddd; padding: 8px 10px; border-radius: 8px; background: #fafafa;
-    }
-    button {
-      appearance: none; border: 1px solid #ddd; background: #fff; color: var(--ink);
-      padding: 10px 14px; border-radius: 10px; font-weight: 600; cursor: pointer;
-      transition: border-color .15s, box-shadow .15s, transform .02s ease-in-out;
-    }
-    button:hover { border-color: #bbb; box-shadow: 0 1px 0 rgba(0,0,0,.05); }
-    button:active { transform: translateY(1px); }
-    .accent { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .status { font-size: 13px; color: var(--ink-soft); }
-    .spacer { flex: 1; }
-    canvas {
-      width: 100%; height: 65vh; min-height: 360px; display: block;
-      border: 1px solid var(--frame); border-radius: 12px; background: #fff;
-      box-shadow: 0 1px 0 rgba(0,0,0,.03) inset;
-    }
-    .hint { font-size: 13px; color: var(--ink-soft); margin-top: 8px; line-height: 1.35; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Growing Ball with Trail + MP3</title>
+<style>
+html,body {margin:0;padding:0;background:#fff;font-family:sans-serif;color:#111;}
+.wrap {max-width:900px;margin:20px auto;padding:0 16px;}
+canvas {width:100%;height:65vh;min-height:360px;background:#fff;border:1px solid #eee;border-radius:8px;}
+.controls {display:flex;gap:12px;align-items:center;margin-bottom:12px;}
+.status {font-size:13px;color:#555;}
+.spacer {flex:1;}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Growing ball bounce + MP3</h1>
-    <div class="controls">
-      <input id="file" type="file" accept="audio/mpeg,audio/mp3,audio/*" />
-      <span id="fileStatus" class="status">No file loaded</span>
-      <div class="spacer"></div>
-      <button id="startStop" class="accent">Start</button>
-      <button id="reset">Reset</button>
-    </div>
-    <canvas id="canvas"></canvas>
-    <div class="hint">
-      <strong>How it works:</strong> The arena is a fixed circle. The ball bounces continuously and grows linearly for 30 seconds. Music pauses 0.2s after the second wall hit (i.e., after it reaches the “other” wall once).
-    </div>
-  </div>
+<div class="wrap">
+<h1>Growing ball with trail + MP3</h1>
+<div class="controls">
+<input id="file" type="file" accept="audio/*"/>
+<span id="fileStatus" class="status">No file loaded</span>
+<div class="spacer"></div>
+<button id="startStop">Start</button>
+<button id="reset">Reset</button>
+</div>
+<canvas id="canvas"></canvas>
+</div>
 
-  <audio id="player" preload="auto" style="display:none"></audio>
+<audio id="player" preload="auto" style="display:none"></audio>
 
-  <script>
-    // ====== CONFIG (tweak these) ======
-    const GROW_DURATION_SEC = 30;      // time for the ball to grow linearly
-    const BALL_RADIUS_START = 10;      // starting ball radius (px)
-    const BALL_RADIUS_END   = 120;     // final ball radius after growth (px)
-    const START_SPEED       = 280;     // ball speed (px/s), constant
-    const BORDER_MARGIN     = 24;      // padding inside canvas for arena edge
-    const ELASTICITY        = 1.0;     // 1.0 = perfectly elastic
-    const MUSIC_DELAY_SEC   = 0.2;     // pause music 0.2s after second collision
+<script>
+const GROW_DURATION_SEC = 30;
+const BALL_RADIUS_START = 10;
+const BALL_RADIUS_END = 120;
+const SPEED = 280;
+const BORDER_MARGIN = 24;
+const ELASTICITY = 0.99; // slightly imperfect bounce
+const MUSIC_DELAY_SEC = 0.2;
+const TRAIL_LENGTH = 20; // number of past positions to store
 
-    // ====== DOM ======
-    const canvas     = document.getElementById('canvas');
-    const ctx        = canvas.getContext('2d');
-    const startBtn   = document.getElementById('startStop');
-    const resetBtn   = document.getElementById('reset');
-    const fileInput  = document.getElementById('file');
-    const fileStatus = document.getElementById('fileStatus');
-    const audioEl    = document.getElementById('player');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const startBtn = document.getElementById('startStop');
+const resetBtn = document.getElementById('reset');
+const fileInput = document.getElementById('file');
+const fileStatus = document.getElementById('fileStatus');
+const audioEl = document.getElementById('player');
 
-    // ====== Canvas setup ======
-    function resizeCanvas() {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = Math.max(1, window.devicePixelRatio || 1);
-      canvas.width = Math.floor(rect.width * dpr);
-      canvas.height = Math.floor(rect.height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw in CSS pixels
-      updateArena();
+let centerX=0,centerY=0,arenaR=0;
+let x=0,y=0,vx=0,vy=0,r=BALL_RADIUS_START;
+let running=false,startedAt=0,prevT=0,rafId=0;
+let inContact=false,firstCollision=false,musicStopScheduled=false;
+let scheduledStopId=0,audioLoaded=false,objectUrl=null;
+let trail=[];
+
+function resizeCanvas(){
+  const rect=canvas.getBoundingClientRect();
+  const dpr=Math.max(1,window.devicePixelRatio||1);
+  canvas.width=Math.floor(rect.width*dpr);
+  canvas.height=Math.floor(rect.height*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  centerX=canvas.clientWidth/2;
+  centerY=canvas.clientHeight/2;
+  arenaR=Math.max(40,Math.min(centerX,centerY)-BORDER_MARGIN);
+}
+window.addEventListener('resize',resizeCanvas,{passive:true});
+
+function resetBall(angle=Math.random()*Math.PI*2){
+  x=centerX;y=centerY;
+  vx=Math.cos(angle)*SPEED;
+  vy=Math.sin(angle)*SPEED;
+  r=BALL_RADIUS_START;
+  inContact=false;firstCollision=false;musicStopScheduled=false;
+  trail=[];
+}
+
+function resetAll(){
+  cancelAnimationFrame(rafId);
+  running=false;
+  startBtn.textContent='Start';
+  startedAt=0;prevT=0;
+  if(!audioEl.paused) audioEl.pause();
+  if(audioLoaded) audioEl.currentTime=0;
+  if(scheduledStopId) clearTimeout(scheduledStopId);
+  resizeCanvas();
+  resetBall();
+  draw(0);
+}
+
+fileInput.addEventListener('change',()=>{
+  const f=fileInput.files&&fileInput.files[0];
+  if(!f){
+    fileStatus.textContent='No file loaded';
+    audioLoaded=false;
+    if(objectUrl) URL.revokeObjectURL(objectUrl);
+    objectUrl=null;
+    audioEl.removeAttribute('src');
+    return;
+  }
+  if(objectUrl) URL.revokeObjectURL(objectUrl);
+  objectUrl=URL.createObjectURL(f);
+  audioEl.src=objectUrl;
+  audioEl.load();
+  audioLoaded=true;
+  fileStatus.textContent=`Loaded: ${f.name}`;
+});
+
+startBtn.addEventListener('click',async()=>{
+  if(!running){
+    running=true;
+    startBtn.textContent='Pause';
+    if(!startedAt){startedAt=performance.now();}
+    else {const now=performance.now();startedAt += now - prevT;}
+    prevT=performance.now();
+    if(audioLoaded && audioEl.paused){try{await audioEl.play();}catch{}}
+    rafId=requestAnimationFrame(loop);
+  }else{
+    running=false;
+    startBtn.textContent='Resume';
+    cancelAnimationFrame(rafId);
+    prevT=performance.now();
+    if(!audioEl.paused) audioEl.pause();
+  }
+});
+
+resetBtn.addEventListener('click',resetAll);
+
+function reflectVelocity(vx,vy,nx,ny){
+  const dot=vx*nx+vy*ny;
+  let rx=vx-2*dot*nx;
+  let ry=vy-2*dot*ny;
+  const mag=Math.hypot(rx,ry)||1;
+  const k=(SPEED*ELASTICITY)/mag;
+  return [rx*k,ry*k];
+}
+
+function loop(now){
+  const dt=Math.max(0,(now-prevT)/1000);
+  prevT=now;
+  const elapsed=(now-startedAt)/1000;
+  const g=Math.min(1,elapsed/GROW_DURATION_SEC);
+  r=BALL_RADIUS_START+(BALL_RADIUS_END-BALL_RADIUS_START)*g;
+
+  // store trail position
+  trail.push({x,y,r});
+  if(trail.length>TRAIL_LENGTH) trail.shift();
+
+  x+=vx*dt;
+  y+=vy*dt;
+
+  const dx=x-centerX,dy=y-centerY;
+  const dist=Math.hypot(dx,dy);
+  const limit=Math.max(0,arenaR-r);
+
+  if(dist>=limit-0.0001){
+    const nx=dist>0?dx/dist:1;
+    const ny=dist>0?dy/dist:0;
+    x=centerX+nx*limit;
+    y=centerY+ny*limit;
+    const vn=vx*nx+vy*ny;
+    if(vn>0){[vx,vy]=reflectVelocity(vx,vy,nx,ny);}
+    if(!inContact){
+      inContact=true;
+      handleCollisionEvent();
     }
-    window.addEventListener('resize', resizeCanvas, { passive: true });
+  } else { inContact=false; }
 
-    // ====== Arena (fixed circle) ======
-    let centerX = 0, centerY = 0, arenaR = 0;
-    function updateArena() {
-      centerX = canvas.clientWidth / 2;
-      centerY = canvas.clientHeight / 2;
-      arenaR  = Math.max(40, Math.min(centerX, centerY) - BORDER_MARGIN);
-    }
+  draw(now);
+  if(running) rafId=requestAnimationFrame(loop);
+}
 
-    // ====== Ball state ======
-    let x = 0, y = 0;        // position
-    let vx = 0, vy = 0;      // velocity
-    let speed = START_SPEED; // constant magnitude
-    let r = BALL_RADIUS_START;
+function handleCollisionEvent(){
+  if(!firstCollision){firstCollision=true;return;}
+  if(!musicStopScheduled){
+    musicStopScheduled=true;
+    scheduledStopId=setTimeout(()=>{
+      if(!audioEl.paused) audioEl.pause();
+    },MUSIC_DELAY_SEC*1000);
+  }
+}
 
-    // ====== Loop timing ======
-    let running = false;
-    let startedAt = 0;
-    let prevT = 0;
-    let rafId = 0;
+function draw(){
+  ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);
+  ctx.save();
+  ctx.translate(centerX,centerY);
+  ctx.beginPath();
+  ctx.arc(0,0,arenaR,0,Math.PI*2);
+  ctx.strokeStyle='#000';
+  ctx.lineWidth=2;
+  ctx.stroke();
+  ctx.restore();
 
-    // ====== Collision/music logic ======
-    let inContact = false;           // latch to detect discrete collisions
-    let firstCollisionSeen = false;  // seen first wall hit?
-    let musicStopScheduled = false;  // schedule stop once
-    let scheduledStopId = 0;
+  // draw trail (oldest first)
+  for(let i=0;i<trail.length;i++){
+    const p=trail[i];
+    const alpha=i/trail.length;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(0,0,0,${alpha*0.5})`;
+    ctx.fill();
+  }
 
-    // ====== Audio/file handling ======
-    let audioLoaded = false;
-    let objectUrl = null;
+  // ball
+  ctx.beginPath();
+  ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle='#000';
+  ctx.fill();
+}
 
-    fileInput.addEventListener('change', () => {
-      const f = fileInput.files && fileInput.files[0];
-      if (!f) {
-        fileStatus.textContent = 'No file loaded';
-        audioLoaded = false;
-        if (objectUrl) URL.revokeObjectURL(objectUrl);
-        objectUrl = null;
-        audioEl.removeAttribute('src');
-        return;
-      }
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-      objectUrl = URL.createObjectURL(f);
-      audioEl.src = objectUrl;
-      audioEl.load();
-      audioLoaded = true;
-      fileStatus.textContent = `Loaded: ${f.name}`;
-    });
-
-    // ====== Controls ======
-    startBtn.addEventListener('click', async () => {
-      if (!running) {
-        running = true;
-        startBtn.textContent = 'Pause';
-        if (!startedAt) {
-          startedAt = performance.now();
-        } else {
-          // resume: keep growth timeline continuous
-          const now = performance.now();
-          const pausedDuration = now - prevT;
-          startedAt += pausedDuration;
-        }
-        prevT = performance.now();
-        if (audioLoaded && audioEl.paused) {
-          try { await audioEl.play(); } catch {}
-        }
-        rafId = requestAnimationFrame(loop);
-      } else {
-        running = false;
-        startBtn.textContent = 'Resume';
-        cancelAnimationFrame(rafId);
-        prevT = performance.now();
-        if (!audioEl.paused) audioEl.pause();
-      }
-    });
-
-    resetBtn.addEventListener('click', () => resetAll());
-
-    // ====== Init/reset ======
-    function resetBall(initialAngle = Math.random() * Math.PI * 2) {
-      x = centerX;
-      y = centerY;
-      vx = Math.cos(initialAngle) * speed;
-      vy = Math.sin(initialAngle) * speed;
-      r  = BALL_RADIUS_START;
-      inContact = false;
-      firstCollisionSeen = false;
-      musicStopScheduled = false;
-      if (scheduledStopId) { clearTimeout(scheduledStopId); scheduledStopId = 0; }
-    }
-
-    function resetAll() {
-      cancelAnimationFrame(rafId);
-      running = false;
-      startBtn.textContent = 'Start';
-      startedAt = 0;
-      prevT = 0;
-      if (!audioEl.paused) audioEl.pause();
-      if (audioLoaded) audioEl.currentTime = 0;
-      if (scheduledStopId) { clearTimeout(scheduledStopId); scheduledStopId = 0; }
-      resizeCanvas();
-      resetBall();
-      draw(0); // paint initial frame
-    }
-
-    // ====== Math helpers ======
-    function reflectVelocity(vx, vy, nx, ny, elasticity = ELASTICITY) {
-      const dot = vx * nx + vy * ny;
-      const rx = vx - 2 * dot * nx;
-      const ry = vy - 2 * dot * ny;
-      // Re-normalize speed to maintain constant magnitude (helps avoid drift)
-      const mag = Math.hypot(rx, ry) || 1;
-      const k = (speed * elasticity) / mag;
-      return [rx * k, ry * k];
-    }
-
-    // ====== Main loop ======
-    function loop(now) {
-      const dt = Math.max(0, (now - prevT) / 1000);
-      prevT = now;
-
-      // Ball growth (linear over GROW_DURATION_SEC)
-      const elapsed = (now - startedAt) / 1000;
-      const g = Math.min(1, elapsed / GROW_DURATION_SEC);
-      r = BALL_RADIUS_START + (BALL_RADIUS_END - BALL_RADIUS_START) * g;
-
-      // Integrate motion
-      x += vx * dt;
-      y += vy * dt;
-
-      // Collision with circular arena (fixed radius)
-      const dx = x - centerX;
-      const dy = y - centerY;
-      const dist = Math.hypot(dx, dy);
-      const limit = Math.max(0, arenaR - r); // ball's center must stay within this
-
-      // Detect contact and reflect if moving outward into wall
-      if (dist >= limit - 0.0001) {
-        const nx = dist > 0 ? dx / dist : 1; // normal from center to ball
-        const ny = dist > 0 ? dy / dist : 0;
-
-        // Project back onto boundary to avoid tunneling
-        x = centerX + nx * limit;
-        y = centerY + ny * limit;
-
-        // Reflect only if velocity has outward component
-        const vn = vx * nx + vy * ny;
-        if (vn > 0) {
-          [vx, vy] = reflectVelocity(vx, vy, nx, ny);
-        }
-
-        // Collision event latch (count discrete hits)
-        if (!inContact) {
-          inContact = true;
-          handleCollisionEvent();
-        }
-      } else {
-        inContact = false;
-      }
-
-      draw(now);
-
-      if (running) rafId = requestAnimationFrame(loop);
-    }
-
-    // ====== Collision-driven music timing ======
-    function handleCollisionEvent() {
-      if (!firstCollisionSeen) {
-        firstCollisionSeen = true;
-        return; // wait for the "other wall" (next collision)
-      }
-      if (!musicStopScheduled) {
-        musicStopScheduled = true;
-        scheduledStopId = setTimeout(() => {
-          if (!audioEl.paused) audioEl.pause();
-        }, MUSIC_DELAY_SEC * 1000);
-      }
-    }
-
-    // ====== Drawing ======
-    function draw() {
-      ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-
-      // Arena (fixed)
-      ctx.save();
-      ctx.translate(centerX, centerY);
-      ctx.beginPath();
-      ctx.arc(0, 0, arenaR, 0, Math.PI * 2);
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.restore();
-
-      // Ball (growing)
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fillStyle = '#000';
-      ctx.fill();
-
-      // HUD
-      ctx.fillStyle = '#000';
-      ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
-      ctx.fillText(`ball r: ${r.toFixed(1)} px`, 10, 18);
-      ctx.fillText(`speed: ${speed.toFixed(0)} px/s`, 10, 34);
-    }
-
-    // ====== Boot ======
-    resizeCanvas();
-    resetBall();
-    draw(0);
-  </script>
+resizeCanvas();
+resetBall();
+draw(0);
+</script>
 </body>
 </html>
