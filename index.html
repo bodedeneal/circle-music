@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Gravity Ball with Increasing Elasticity</title>
+<title>Gravity Ball – Perfect Elasticity</title>
 <style>
 html,body {margin:0;padding:0;background:#fff;color:#111;font-family:sans-serif;}
 .wrap {max-width:900px;margin:20px auto;padding:0 16px;}
@@ -34,9 +34,7 @@ const BALL_RADIUS_START=10;
 const BALL_RADIUS_END=120;
 const SPEED_INIT=250;
 const GRAVITY=500; // px/s² downward
-let ELASTICITY=1.0;           // starting
-const ELASTICITY_MAX=1.2;     // cap
-const ELASTICITY_STEP=0.02;   // increase per bounce until cap
+const ELASTICITY=1.0;         // fixed perfect bounce
 const BORDER_MARGIN=24;
 const MUSIC_DELAY_SEC=0.2;
 const TRAIL_LENGTH=25;
@@ -68,13 +66,16 @@ function resizeCanvas(){
 }
 window.addEventListener('resize',resizeCanvas,{passive:true});
 
-function resetBall(angle=-Math.PI/4){
-  x=centerX;y=centerY;
+function resetBall(){
+  const angle=Math.random()*Math.PI*2; // random launch
+  x=centerX;
+  y=centerY;
   vx=Math.cos(angle)*SPEED_INIT;
   vy=Math.sin(angle)*SPEED_INIT;
   r=BALL_RADIUS_START;
-  inContact=false;firstCollision=false;musicStopScheduled=false;
-  ELASTICITY=1.0; // reset elasticity
+  inContact=false;
+  firstCollision=false;
+  musicStopScheduled=false;
   trail=[];
 }
 
@@ -164,9 +165,6 @@ function loop(now){
     const vn=vx*nx+vy*ny;
     if(vn>0){
       [vx,vy]=reflectVelocity(vx,vy,nx,ny);
-      if(ELASTICITY < ELASTICITY_MAX){
-        ELASTICITY = Math.min(ELASTICITY_MAX, ELASTICITY + ELASTICITY_STEP);
-      }
     }
     if(!inContact){
       inContact=true;
