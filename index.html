@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Gravity Ball – Perfect Elasticity</title>
+<title>Gravity Ball – Perfect Elasticity + Rainbow Outline</title>
 <style>
 html,body {margin:0;padding:0;background:#fff;color:#111;font-family:sans-serif;}
 .wrap {max-width:900px;margin:20px auto;padding:0 16px;}
@@ -34,10 +34,14 @@ const BALL_RADIUS_START=10;
 const BALL_RADIUS_END=120;
 const SPEED_INIT=250;
 const GRAVITY=500; // px/s² downward
-const ELASTICITY=1.001;         // fixed perfect bounce
+const ELASTICITY=1.0;         // fixed perfect bounce
 const BORDER_MARGIN=24;
 const MUSIC_DELAY_SEC=0.2;
 const TRAIL_LENGTH=25;
+
+// Rainbow outline config (constant pixel size)
+const RING_WIDTH_PX=5;        // outline thickness in CSS px
+const RING_SEGMENTS=96;       // more segments = smoother rainbow ring
 
 const canvas=document.getElementById('canvas');
 const ctx=canvas.getContext('2d');
@@ -186,8 +190,25 @@ function handleCollisionEvent(){
   }
 }
 
+// Draw a rainbow ring around the ball with constant pixel thickness
+function drawRainbowRing(cx,cy,rad,widthPx,segments){
+  const step=(Math.PI*2)/segments;
+  ctx.lineWidth=widthPx;
+  ctx.lineCap='butt';
+  for(let i=0;i<segments;i++){
+    const a0=i*step;
+    const a1=(i+1)*step;
+    const hue=(i/segments)*360;
+    ctx.strokeStyle=`hsl(${hue}, 100%, 50%)`;
+    ctx.beginPath();
+    ctx.arc(cx,cy,rad,a0,a1);
+    ctx.stroke();
+  }
+}
+
 function draw(){
   ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);
+  // arena
   ctx.save();
   ctx.translate(centerX,centerY);
   ctx.beginPath();
@@ -197,6 +218,7 @@ function draw(){
   ctx.stroke();
   ctx.restore();
 
+  // trail (filled, fading)
   for(let i=0;i<trail.length;i++){
     const p=trail[i];
     const alpha=i/trail.length;
@@ -205,10 +227,15 @@ function draw(){
     ctx.fillStyle=`rgba(0,0,0,${alpha*0.4})`;
     ctx.fill();
   }
+
+  // ball fill
   ctx.beginPath();
   ctx.arc(x,y,r,0,Math.PI*2);
   ctx.fillStyle='#000';
   ctx.fill();
+
+  // rainbow outline (constant thickness)
+  drawRainbowRing(x,y,r,RING_WIDTH_PX,RING_SEGMENTS);
 }
 
 resizeCanvas();
