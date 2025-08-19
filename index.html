@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Gravity Ball – Final Short</title>
+  <title>Gravity Ball – Rainbow Short</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     html, body {
@@ -65,11 +65,19 @@ let startTime = 0;
 let trail = [];
 
 const VIDEO_DURATION = 60000;
-const GROWTH_RATE = 200 / 45; // grows 200px over 45s — faster than video duration
-const BALL_COLOR = '#ffffff'; // white
-const BG_COLOR = '#000000';   // black
+const GROWTH_RATE = 200 / 45;
 const RING_WIDTH = 6;
 const RING_SEGMENTS = 96;
+
+const RAINBOW_COLORS = [
+  'rgb(255,200,200)', // light red
+  'rgb(255,180,120)', // light orange
+  'rgb(255,255,180)', // light yellow
+  'rgb(180,255,180)', // light green
+  'rgb(180,220,255)'  // light blue
+];
+
+let selectedColor = RAINBOW_COLORS[Math.floor(Math.random() * RAINBOW_COLORS.length)];
 
 audioInput.addEventListener('change', () => {
   const file = audioInput.files[0];
@@ -87,6 +95,7 @@ function resetBall() {
   vy = (Math.random() - 0.5) * 600;
   radius = 20;
   trail = [];
+  selectedColor = RAINBOW_COLORS[Math.floor(Math.random() * RAINBOW_COLORS.length)];
 }
 
 function drawRainbowRing(cx, cy, rad, width, segments) {
@@ -102,11 +111,21 @@ function drawRainbowRing(cx, cy, rad, width, segments) {
   }
 }
 
+function drawArena() {
+  const arenaRadius = Math.min(canvas.width, canvas.height) / 2 - 20;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(canvas.width / 2, canvas.height / 2, arenaRadius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 function drawFrame(elapsed) {
-  ctx.fillStyle = BG_COLOR;
+  ctx.fillStyle = selectedColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.fillStyle = '#fff';
+  drawArena();
+
+  ctx.fillStyle = '#000';
   ctx.font = 'bold 64px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('Watch What Will Happen', canvas.width / 2, 120);
@@ -114,7 +133,7 @@ function drawFrame(elapsed) {
   for (const t of trail) {
     ctx.beginPath();
     ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
-    ctx.fillStyle = BALL_COLOR;
+    ctx.fillStyle = selectedColor;
     ctx.globalAlpha = 0.2;
     ctx.fill();
     ctx.globalAlpha = 1;
@@ -123,7 +142,7 @@ function drawFrame(elapsed) {
 
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.fillStyle = BALL_COLOR;
+  ctx.fillStyle = selectedColor;
   ctx.fill();
   drawRainbowRing(x, y, radius, RING_WIDTH, RING_SEGMENTS);
 }
@@ -185,7 +204,7 @@ startBtn.addEventListener('click', () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'gravity-ball-final.webm';
+      a.download = 'gravity-ball-rainbow.webm';
       a.click();
       URL.revokeObjectURL(url);
     };
