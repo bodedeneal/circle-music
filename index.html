@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Gravity Ball – Rainbow Outline</title>
+  <title>Gravity Ball – Rainbow Arena</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
   <style>
     html, body {
       margin: 0;
       padding: 0;
       background: #000;
-      font-family: sans-serif;
+      font-family: 'Orbitron', sans-serif;
       color: white;
       text-align: center;
     }
@@ -68,15 +69,20 @@ const VIDEO_DURATION = 60000;
 const GROWTH_RATE = 200 / 45;
 const RING_WIDTH = 6;
 
-const RAINBOW_COLORS = [
+const BACKGROUND_COLORS = [
   'rgb(255,200,200)', // light red
-  'rgb(255,180,120)', // light orange
-  'rgb(255,255,180)', // light yellow
-  'rgb(180,255,180)', // light green
-  'rgb(180,220,255)'  // light blue
+  'rgb(255,180,120)', // orange
+  'rgb(255,255,180)', // yellow
+  'rgb(120,255,120)', // neon green
+  'rgb(180,220,255)'  // sky blue
 ];
 
-let selectedColor = RAINBOW_COLORS[Math.floor(Math.random() * RAINBOW_COLORS.length)];
+const CONTRAST_COLORS = [
+  '#222', '#444', '#666', '#888', '#aaa', '#ccc', '#eee'
+];
+
+let backgroundColor = BACKGROUND_COLORS[Math.floor(Math.random() * BACKGROUND_COLORS.length)];
+let ballFillColor = CONTRAST_COLORS[Math.floor(Math.random() * CONTRAST_COLORS.length)];
 
 audioInput.addEventListener('change', () => {
   const file = audioInput.files[0];
@@ -94,47 +100,61 @@ function resetBall() {
   vy = (Math.random() - 0.5) * 600;
   radius = 20;
   trail = [];
-  selectedColor = RAINBOW_COLORS[Math.floor(Math.random() * RAINBOW_COLORS.length)];
+  backgroundColor = BACKGROUND_COLORS[Math.floor(Math.random() * BACKGROUND_COLORS.length)];
+  ballFillColor = CONTRAST_COLORS[Math.floor(Math.random() * CONTRAST_COLORS.length)];
 }
 
 function drawArena() {
   const arenaRadius = Math.min(canvas.width, canvas.height) / 2 - 20;
-  ctx.fillStyle = '#000';
+  ctx.fillStyle = backgroundColor;
   ctx.beginPath();
   ctx.arc(canvas.width / 2, canvas.height / 2, arenaRadius, 0, Math.PI * 2);
   ctx.fill();
+  ctx.lineWidth = RING_WIDTH;
+  ctx.strokeStyle = '#000';
+  ctx.stroke();
+}
+
+function drawRainbowOutline(x, y, r) {
+  const segments = 60;
+  const step = (Math.PI * 2) / segments;
+  ctx.lineWidth = RING_WIDTH;
+  for (let i = 0; i < segments; i++) {
+    const a0 = i * step;
+    const a1 = (i + 1) * step;
+    ctx.strokeStyle = `hsl(${(i / segments) * 360}, 100%, 50%)`;
+    ctx.beginPath();
+    ctx.arc(x, y, r, a0, a1);
+    ctx.stroke();
+  }
 }
 
 function drawFrame(elapsed) {
-  ctx.fillStyle = selectedColor;
+  ctx.fillStyle = backgroundColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   drawArena();
 
   ctx.fillStyle = '#000';
-  ctx.font = 'bold 64px sans-serif';
+  ctx.font = 'bold 64px Orbitron';
   ctx.textAlign = 'center';
-  ctx.fillText('Watch What Will Happen', canvas.width / 2, 120);
+  ctx.fillText('Watch What Will Happen', canvas.width / 2, canvas.height * 0.2);
 
   for (const t of trail) {
     ctx.beginPath();
     ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
-    ctx.fillStyle = selectedColor;
+    ctx.fillStyle = ballFillColor;
     ctx.globalAlpha = 0.2;
     ctx.fill();
     ctx.globalAlpha = 1;
-    ctx.lineWidth = RING_WIDTH;
-    ctx.strokeStyle = '#000';
-    ctx.stroke();
+    drawRainbowOutline(t.x, t.y, t.r);
   }
 
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.fillStyle = selectedColor;
+  ctx.fillStyle = ballFillColor;
   ctx.fill();
-  ctx.lineWidth = RING_WIDTH;
-  ctx.strokeStyle = '#000';
-  ctx.stroke();
+  drawRainbowOutline(x, y, radius);
 }
 
 function reflect(vx, vy, nx, ny) {
@@ -194,7 +214,7 @@ startBtn.addEventListener('click', () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'gravity-ball-outline.webm';
+      a.download = 'gravity-ball-rainbow.webm';
       a.click();
       URL.revokeObjectURL(url);
     };
@@ -221,6 +241,3 @@ resetBtn.addEventListener('click', () => {
 
 resetBall();
 drawFrame(0);
-</script>
-</body>
-</html>
