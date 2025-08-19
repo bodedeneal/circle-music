@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Gravity Ball – YouTube Short</title>
+  <title>Gravity Ball – Final Short</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     html, body {
@@ -65,22 +65,11 @@ let startTime = 0;
 let trail = [];
 
 const VIDEO_DURATION = 60000;
-const GROWTH_RATE = 100 / 45;
+const GROWTH_RATE = 200 / 45; // grows 200px over 45s — faster than video duration
+const BALL_COLOR = '#ffffff'; // white
+const BG_COLOR = '#000000';   // black
 const RING_WIDTH = 6;
 const RING_SEGMENTS = 96;
-
-const BALL_COLORS = ['white','gray','blue','green','lime','tan','black'];
-const BG_COLORS = [
-  'rgb(255,200,200)', // light red
-  'rgb(255,165,0)',   // orange
-  'rgb(255,255,0)',   // yellow
-  'rgb(57,255,20)',   // neon green
-  'rgb(135,206,235)'  // sky blue
-];
-
-let ballColorIndex = 0;
-let bgColorIndex = 0;
-let lastColorChange = 0;
 
 audioInput.addEventListener('change', () => {
   const file = audioInput.files[0];
@@ -98,9 +87,6 @@ function resetBall() {
   vy = (Math.random() - 0.5) * 600;
   radius = 20;
   trail = [];
-  ballColorIndex = 0;
-  bgColorIndex = 0;
-  lastColorChange = 0;
 }
 
 function drawRainbowRing(cx, cy, rad, width, segments) {
@@ -117,31 +103,27 @@ function drawRainbowRing(cx, cy, rad, width, segments) {
 }
 
 function drawFrame(elapsed) {
-  // Background
-  ctx.fillStyle = BG_COLORS[bgColorIndex];
+  ctx.fillStyle = BG_COLOR;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Title
-  ctx.fillStyle = '#000';
+  ctx.fillStyle = '#fff';
   ctx.font = 'bold 64px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('Watch What Will Happen', canvas.width / 2, 100);
+  ctx.fillText('Watch What Will Happen', canvas.width / 2, 120);
 
-  // Trail
   for (const t of trail) {
     ctx.beginPath();
     ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
-    ctx.fillStyle = t.color;
+    ctx.fillStyle = BALL_COLOR;
     ctx.globalAlpha = 0.2;
     ctx.fill();
     ctx.globalAlpha = 1;
     drawRainbowRing(t.x, t.y, t.r, RING_WIDTH, RING_SEGMENTS);
   }
 
-  // Ball
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.fillStyle = BALL_COLORS[ballColorIndex];
+  ctx.fillStyle = BALL_COLOR;
   ctx.fill();
   drawRainbowRing(x, y, radius, RING_WIDTH, RING_SEGMENTS);
 }
@@ -162,13 +144,13 @@ function animate(timestamp) {
   x += vx * dt;
   y += vy * dt;
 
-  trail.push({ x, y, r: radius, color: BALL_COLORS[ballColorIndex] });
+  trail.push({ x, y, r: radius });
   if (trail.length > 30) trail.shift();
 
   const dx = x - canvas.width / 2;
   const dy = y - canvas.height / 2;
   const dist = Math.hypot(dx, dy);
-  const maxDist = canvas.width / 2 - radius;
+  const maxDist = Math.min(canvas.width, canvas.height) / 2 - radius;
 
   if (dist >= maxDist) {
     const nx = dx / dist;
@@ -176,13 +158,6 @@ function animate(timestamp) {
     x = canvas.width / 2 + nx * maxDist;
     y = canvas.height / 2 + ny * maxDist;
     [vx, vy] = reflect(vx, vy, nx, ny);
-  }
-
-  // Color cycling every 5 seconds
-  if (elapsed - lastColorChange > 5) {
-    ballColorIndex = (ballColorIndex + 1) % BALL_COLORS.length;
-    bgColorIndex = (bgColorIndex + 1) % BG_COLORS.length;
-    lastColorChange = elapsed;
   }
 
   drawFrame(elapsed);
@@ -210,7 +185,7 @@ startBtn.addEventListener('click', () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'gravity-ball-short.webm';
+      a.download = 'gravity-ball-final.webm';
       a.click();
       URL.revokeObjectURL(url);
     };
