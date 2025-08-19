@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Gravity Ball – Rainbow Short</title>
+  <title>Gravity Ball – Rainbow Outline</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     html, body {
@@ -67,7 +67,6 @@ let trail = [];
 const VIDEO_DURATION = 60000;
 const GROWTH_RATE = 200 / 45;
 const RING_WIDTH = 6;
-const RING_SEGMENTS = 96;
 
 const RAINBOW_COLORS = [
   'rgb(255,200,200)', // light red
@@ -98,19 +97,6 @@ function resetBall() {
   selectedColor = RAINBOW_COLORS[Math.floor(Math.random() * RAINBOW_COLORS.length)];
 }
 
-function drawRainbowRing(cx, cy, rad, width, segments) {
-  const step = (Math.PI * 2) / segments;
-  ctx.lineWidth = width;
-  for (let i = 0; i < segments; i++) {
-    const a0 = i * step;
-    const a1 = (i + 1) * step;
-    ctx.strokeStyle = `hsl(${(i / segments) * 360}, 100%, 50%)`;
-    ctx.beginPath();
-    ctx.arc(cx, cy, rad, a0, a1);
-    ctx.stroke();
-  }
-}
-
 function drawArena() {
   const arenaRadius = Math.min(canvas.width, canvas.height) / 2 - 20;
   ctx.fillStyle = '#000';
@@ -137,14 +123,18 @@ function drawFrame(elapsed) {
     ctx.globalAlpha = 0.2;
     ctx.fill();
     ctx.globalAlpha = 1;
-    drawRainbowRing(t.x, t.y, t.r, RING_WIDTH, RING_SEGMENTS);
+    ctx.lineWidth = RING_WIDTH;
+    ctx.strokeStyle = '#000';
+    ctx.stroke();
   }
 
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, Math.PI * 2);
   ctx.fillStyle = selectedColor;
   ctx.fill();
-  drawRainbowRing(x, y, radius, RING_WIDTH, RING_SEGMENTS);
+  ctx.lineWidth = RING_WIDTH;
+  ctx.strokeStyle = '#000';
+  ctx.stroke();
 }
 
 function reflect(vx, vy, nx, ny) {
@@ -204,7 +194,7 @@ startBtn.addEventListener('click', () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'gravity-ball-rainbow.webm';
+      a.download = 'gravity-ball-outline.webm';
       a.click();
       URL.revokeObjectURL(url);
     };
