@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Gravity Ball – Light RGB Background</title>
+<title>Gravity Ball – Light Pastel Rainbow Background</title>
 <style>
-html,body {margin:0;padding:0;color:#111;font-family:sans-serif;}
+html,body {margin:0;padding:0;color:#111;font-family:sans-serif;background:#fafafa;}
 .wrap {max-width:900px;margin:20px auto;padding:0 16px;}
 canvas {width:100%;height:65vh;min-height:360px;border:1px solid #eee;border-radius:8px;}
 .controls {display:flex;gap:12px;align-items:center;margin-bottom:12px;}
@@ -15,7 +15,7 @@ canvas {width:100%;height:65vh;min-height:360px;border:1px solid #eee;border-rad
 </head>
 <body>
 <div class="wrap">
-<h1>Gravity Ball – Light RGB Background</h1>
+<h1>Gravity Ball – Light Pastel Rainbow</h1>
 <div class="controls">
 <input id="file" type="file" accept="audio/*"/>
 <span id="fileStatus" class="status">No file loaded</span>
@@ -34,7 +34,7 @@ const BALL_RADIUS_START=10;
 const BALL_RADIUS_END=120;
 const SPEED_INIT=250;
 const GRAVITY=500;
-const ELASTICITY=1.019;
+const ELASTICITY=1.0;
 const BORDER_MARGIN=24;
 const MUSIC_DELAY_SEC=0.2;
 const TRAIL_LENGTH=25;
@@ -43,14 +43,18 @@ const TRAIL_LENGTH=25;
 const RING_WIDTH_PX=5;
 const RING_SEGMENTS=96;
 
-// Well‑known ball colors
+// Known ball colors
 const KNOWN_COLORS = ['black','tan','white','gray','blue','green','lime'];
 
-// Light RGB backgrounds
-const LIGHT_RGB_BACKGROUNDS = [
+// Light pastel rainbow backgrounds
+const LIGHT_RAINBOW_BACKGROUNDS = [
   'rgb(255,200,200)', // light red
+  'rgb(255,220,180)', // light orange
+  'rgb(255,255,200)', // light yellow
   'rgb(200,255,200)', // light green
-  'rgb(200,200,255)'  // light blue
+  'rgb(200,220,255)', // light blue
+  'rgb(220,200,255)', // light indigo
+  'rgb(245,200,255)'  // light violet
 ];
 
 const canvas=document.getElementById('canvas');
@@ -90,7 +94,7 @@ function resetBall(){
   vy=Math.sin(angle)*SPEED_INIT;
   r=BALL_RADIUS_START;
   ballColor = pickRandom(KNOWN_COLORS);
-  bgColor = pickRandom(LIGHT_RGB_BACKGROUNDS);
+  bgColor = pickRandom(LIGHT_RAINBOW_BACKGROUNDS);
   inContact=false;
   firstCollision=false;
   musicStopScheduled=false;
@@ -107,7 +111,7 @@ function resetAll(){
   if(scheduledStopId) clearTimeout(scheduledStopId);
   resizeCanvas();
   resetBall();
-  draw(0);
+  draw();
 }
 
 fileInput.addEventListener('change',()=>{
@@ -206,17 +210,17 @@ function drawRainbowRing(cx,cy,rad,widthPx,segments){
 }
 
 function draw(){
-  // background fill
+  // background
   ctx.fillStyle=bgColor;
   ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
 
-  // arena circle — made thicker here
+  // arena outline
   ctx.save();
   ctx.translate(centerX,centerY);
   ctx.beginPath();
   ctx.arc(0,0,arenaR,0,Math.PI*2);
   ctx.strokeStyle='#000';
-  ctx.lineWidth=4; // thicker outline
+  ctx.lineWidth=4;
   ctx.stroke();
   ctx.restore();
 
@@ -237,5 +241,22 @@ function draw(){
   // main ball
   ctx.beginPath();
   ctx.arc(x,y,r,0,Math.PI*2);
-  ctx.fillStyle=ballColor;
+  ctx.fillStyle = ballColor;
   ctx.fill();
+  drawRainbowRing(x,y,r,RING_WIDTH_PX,RING_SEGMENTS);
+}
+
+window.addEventListener('resize', ()=>{
+  resizeCanvas();
+  draw();
+});
+
+// initialize
+resizeCanvas();
+resetBall();
+draw();
+</script>
+</body>
+</html>
+
+ 
