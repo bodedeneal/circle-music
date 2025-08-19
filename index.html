@@ -29,12 +29,12 @@ canvas {width:100%;height:65vh;min-height:360px;border:1px solid #eee;border-rad
 <audio id="player" preload="auto" style="display:none"></audio>
 
 <script>
-const GROW_DURATION = 25; // random between 25 and 60 seconds
+const GROW_DURATION_SEC=30;
 const BALL_RADIUS_START=10;
-const BALL_RADIUS_END=310;
+const BALL_RADIUS_END=120;
 const SPEED_INIT=250;
 const GRAVITY=500;
-const ELASTICITY=1.019;
+const ELASTICITY=1.0;
 const BORDER_MARGIN=24;
 const MUSIC_DELAY_SEC=0.2;
 const TRAIL_LENGTH=25;
@@ -46,7 +46,6 @@ const RING_SEGMENTS=96;
 // Known ball colors
 const KNOWN_COLORS = ['black','tan','white','gray','blue','green','lime'];
 
-// Light pastel rainbow backgrounds
 // Custom light & vivid rainbow backgrounds (no purple)
 const LIGHT_RAINBOW_BACKGROUNDS = [
   'rgb(255,200,200)', // light red
@@ -55,6 +54,7 @@ const LIGHT_RAINBOW_BACKGROUNDS = [
   'rgb(57,255,20)',   // neon green
   'rgb(135,206,235)'  // sky blue
 ];
+
 
 const canvas=document.getElementById('canvas');
 const ctx=canvas.getContext('2d');
@@ -257,5 +257,3 @@ draw();
 </script>
 </body>
 </html>
-
- 
