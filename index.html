@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Circle Arena Bounce + MP3</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ui: #111;
+      --ui-soft: #666;
+      --accent: #0b79d0;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #fff; /* white background */
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--ui);
+      height: 100%;
+    }
+    .wrap {
+      max-width: 900px;
+      margin: 24px auto 32px;
+      padding: 0 16px;
+    }
+    h1 {
+      font-size: 20px;
+      margin: 0 0 12px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin: 8px 0 16px;
+    }
+    .controls > * {
+      margin: 0;
+    }
+    input[type="file"] {
+      border: 1px solid #ddd;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+    button {
+      appearance: none;
+      border: 1px solid #ddd;
+      background: #fff;
+      color: var(--ui);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color .15s, box-shadow .15s, transform .02s ease-in-out;
+    }
+    button:hover { border-color: #bbb; box-shadow: 0 1px 0 rgba(0,0,0,.05); }
+    button:active { transform: translateY(1px); }
+    .accent {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .status {
+      font-size: 13px;
+      color: var(--ui-soft);
+      margin-left: 6px;
+    }
+    canvas {
+      width: 100%;
+      height: 65vh;
+      min-height: 360px;
+      display: block;
+      border-radius: 12px;
+      border: 1px solid #eee; /* subtle frame, background stays white */
+      background: #fff;
+      box-shadow: 0 1px 0 rgba(0,0,0,.03) inset;
+    }
+    .hint {
+      font-size: 13px;
+      color: var(--ui-soft);
+      margin-top: 8px;
+      line-height: 1.35;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .spacer {
+      flex: 1;
+    }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Circle arena bounce + MP3</h1>
+    <div class="controls">
+      <label class="row">
+        <input id="file" type="file" accept="audio/mpeg,audio/mp3,audio/*" />
+        <span class="status" id="fileStatus">No file loaded</span>
+      </label>
+      <div class="spacer"></div>
+      <button id="startStop" class="accent">Start</button>
+      <button id="reset">Reset</button>
+    </div>
+    <canvas id="canvas"></canvas>
+    <div class="hint">
+      <div><strong>Tip:</strong> Upload an MP3, then press Start. The arena grows linearly for 30 seconds. On a wall hit, the ball “sticks” for 0.2s, then bounces. The music stops once, 0.2s after the first wall hit.</div>
+      <div><strong>Tweak:</strong> Open the file and adjust the constants at the top of the script (speed, growth time, delay, sizes).</div>
+    </div>
+  </div>
+
+  <!-- Hidden audio element (we control it with JS) -->
+  <audio id="player" preload="auto" style="display:none"></audio>
+
+  <script>
+    // ====== CONFIG ======
+    const GROW_DURATION_SEC = 30;    // linear arena growth time
+    const BOUNCE_DELAY_SEC = 0.2;    // "stick" time on wall hit before bounce
+    const BALL_RADIUS = 10;          // ball radius in CSS px coordinates
+    const START_SPEED = 280;         // ball speed (px/s)
+    const BORDER_MARGIN = 24;        // padding from canvas edge for final arena
+    const ELASTICITY = 1.0;          // 1.0 = perfectly elastic
+
+    // ====== DOM ======
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const startStopBtn = document.getElementById('startStop');
+    const resetBtn = document.getElementById('reset');
+    const fileInput = document.getElementById('file');
+    const fileStatus = document.getElementById('fileStatus');
+    const audioEl = document.getElementById('player');
+
+    // ====== Canvas/resolution handling ======
+    let dpr = Math.max(1, window.devicePixelRatio || 1);
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      dpr = Math.max(1, window.devicePixelRatio || 1);
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw in CSS pixels
+    }
+    window.addEventListener('resize', resizeCanvas, { passive: true });
+    resizeCanvas();
+
+    // ====== Simulation state ======
+    // Arena
+    let centerX = 0, centerY = 0;
+    let radius0 = 80;  // starting arena radius (px)
+    let radius1 = 0;   // will be computed from canvas size
+    let currentRadius = radius0;
+
+    // Ball
+    let x = 0, y = 0;
+    let vx = 0, vy = 0;
+    let speed = START_SPEED;
+
+    // Timing/loop
+    let rafId = null;
+    let running = false;
+    let startedAt = 0;
+    let prevT = 0;
+
+    // Bounce delay state
+    let pausedForBounce = false;
+    let readyTime = 0; // when to resume after stick
+    let queuedVx = 0, queuedVy = 0;
+    let lastBounceTime = -Infinity;
+
+    // Audio state
+    let audioLoaded = false;
+    let musicStopScheduled = false; // stop only once after the first bounce
+    let objectUrl = null;
+
+    function resetArenaTargets() {
+      centerX = canvas.clientWidth / 2;
+      centerY = canvas.clientHeight / 2;
+      radius1 = Math.max(40, Math.min(centerX, centerY) - BORDER_MARGIN);
+      // Ensure start radius < final radius
+      radius0 = Math.min(radius0, radius1 - 10);
+    }
+
+    function resetBall(initialAngle = Math.random() * Math.PI * 2) {
+      x = centerX;
+      y = centerY;
+      vx = Math.cos(initialAngle) * speed;
+      vy = Math.sin(initialAngle) * speed;
+      pausedForBounce = false;
+      queuedVx = queuedVy = 0;
+      readyTime = 0;
+      lastBounceTime = -Infinity;
+    }
+
+    function resetAll() {
+      cancelAnimationFrame(rafId);
+      running = false;
+      startStopBtn.textContent = 'Start';
+      startedAt = 0;
+      prevT = 0;
+      musicStopScheduled = false;
+      if (!audioEl.paused) audioEl.pause();
+      if (audioLoaded) {
+        audioEl.currentTime = 0;
+      }
+      resizeCanvas();
+      resetArenaTargets();
+      resetBall();
+      draw(); // paint initial frame
+    }
+
+    // ====== File handling ======
+    fileInput.addEventListener('change', () => {
+      const f = fileInput.files && fileInput.files[0];
+      if (!f) {
+        fileStatus.textContent = 'No file loaded';
+        audioLoaded = false;
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+        audioEl.removeAttribute('src');
+        return;
+      }
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      objectUrl = URL.createObjectURL(f);
+      audioEl.src = objectUrl;
+      audioEl.load();
+      audioLoaded = true;
+      musicStopScheduled = false;
+      fileStatus.textContent = `Loaded: ${f.name}`;
+    });
+
+    // ====== Controls ======
+    startStopBtn.addEventListener('click', async () => {
+      if (!running) {
+        // Start
+        running = true;
+        startStopBtn.textContent = 'Pause';
+        if (!startedAt) {
+          startedAt = performance.now();
+        } else {
+          // resume: shift startedAt to keep growth timeline continuous
+          const now = performance.now();
+          const pausedDuration = now - prevT;
+          startedAt += pausedDuration;
+        }
+        // Try to play audio on user gesture
+        if (audioLoaded && audioEl.paused) {
+          try { await audioEl.play(); } catch {}
+        }
+        prevT = performance.now();
+        loop(prevT);
+      } else {
+        // Pause
+        running = false;
+        startStopBtn.textContent = 'Resume';
+        cancelAnimationFrame(rafId);
+        prevT = performance.now();
+        if (!audioEl.paused) audioEl.pause();
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      resetAll();
+    });
+
+    // ====== Physics helpers ======
+    function reflectVelocity(vx, vy, nx, ny) {
+      const dot = vx * nx + vy * ny;
+      const rx = vx - 2 * dot * nx;
+      const ry = vy - 2 * dot * ny;
+      return [rx * ELASTICITY, ry * ELASTICITY];
+    }
+
+    // ====== Main loop ======
+    function loop(t) {
+      if (!running) return;
+      const now = t;
+      const dt = Math.max(0, (now - prevT) / 1000);
+      prevT = now;
+
+      // Arena growth (linear over GROW_DURATION_SEC)
+      const elapsed = (now - startedAt) / 1000;
+      const k = Math.min(1, elapsed / GROW_DURATION_SEC);
+      currentRadius = radius0 + (radius1 - radius0) * k;
+
+      // Movement
+      if (!pausedForBounce) {
+        x += vx * dt;
+        y += vy * dt;
+      } else if (now >= readyTime) {
+        // End stick: apply queued reflection and resume
+        vx = queuedVx;
+        vy = queuedVy;
+        pausedForBounce = false;
+      }
+
+      // Collision with circular boundary
+      const dx = x - centerX;
+      const dy = y - centerY;
+      const dist = Math.hypot(dx, dy);
+      const limit = currentRadius - BALL_RADIUS;
+
+      if (dist >= limit - 0.0001) {
+        // Project onto boundary to avoid tunneling
+        if (dist > 0) {
+          const nx = dx / dist;
+          const ny = dy / dist;
+          x = centerX + nx * limit;
+          y = centerY + ny * limit;
+
+          // Debounce collisions
+          if (now - lastBounceTime > 60) {
+            lastBounceTime = now;
+
+            // Compute reflected velocity, but apply after a short "stick"
+            const [rvx, rvy] = reflectVelocity(vx, vy, nx, ny);
+
+            // Enter stick phase
+            pausedForBounce = true;
+            queuedVx = rvx;
+            queuedVy = rvy;
+            readyTime = now + BOUNCE_DELAY_SEC * 1000;
+
+            // Zero velocity during stick
+            vx = 0; vy = 0;
+
+            // Schedule single music stop 0.2s after the FIRST wall hit
+            if (audioLoaded && !musicStopScheduled) {
+              musicStopScheduled = true;
+              setTimeout(() => {
+                if (!audioEl.paused) audioEl.pause();
+              }, BOUNCE_DELAY_SEC * 1000);
+            }
+          }
+        } else {
+          // Degenerate case: center; nudge
+          x += 0.1; y += 0.1;
+        }
+      }
+
+      draw();
+      rafId = requestAnimationFrame(loop);
+    }
+
+    // ====== Drawing ======
+    function draw() {
+      // clear (white background already, but ensure clean frame)
+      ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
+      // Arena
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.beginPath();
+      ctx.arc(0, 0, currentRadius, 0, Math.PI * 2);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#000';
+      ctx.stroke();
+      ctx.restore();
+
+      // Ball
+      ctx.beginPath();
+      ctx.arc(x, y, BALL_RADIUS, 0, Math.PI * 2);
+      ctx.fillStyle = '#000';
+      ctx.fill();
+
+      // HUD
+      ctx.fillStyle = '#000';
+      ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
+      ctx.fillText(`radius: ${currentRadius.toFixed(1)} px`, 10, 18);
+      ctx.fillText(`speed: ${speed.toFixed(0)} px/s`, 10, 34);
+    }
+
+    // ====== Init ======
+    resetAll();
+  </script>
+</body>
+</html>
