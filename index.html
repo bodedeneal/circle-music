@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Perfect Bounce Gravity Ball + Trail</title>
+<title>Gravity Ball with Increasing Elasticity</title>
 <style>
 html,body {margin:0;padding:0;background:#fff;color:#111;font-family:sans-serif;}
 .wrap {max-width:900px;margin:20px auto;padding:0 16px;}
@@ -15,7 +15,7 @@ canvas {width:100%;height:65vh;min-height:360px;background:#fff;border:1px solid
 </head>
 <body>
 <div class="wrap">
-<h1>Perfect Bounce Gravity Ball + Trail</h1>
+<h1>Gravity Ball with Trail + MP3</h1>
 <div class="controls">
 <input id="file" type="file" accept="audio/*"/>
 <span id="fileStatus" class="status">No file loaded</span>
@@ -34,8 +34,10 @@ const BALL_RADIUS_START=10;
 const BALL_RADIUS_END=120;
 const SPEED_INIT=250;
 const GRAVITY=500; // px/s² downward
+let ELASTICITY=1.0;           // starting
+const ELASTICITY_MAX=1.2;     // cap
+const ELASTICITY_STEP=0.02;   // increase per bounce until cap
 const BORDER_MARGIN=24;
-const ELASTICITY=1.1; // perfect bounce
 const MUSIC_DELAY_SEC=0.2;
 const TRAIL_LENGTH=25;
 
@@ -72,6 +74,7 @@ function resetBall(angle=-Math.PI/4){
   vy=Math.sin(angle)*SPEED_INIT;
   r=BALL_RADIUS_START;
   inContact=false;firstCollision=false;musicStopScheduled=false;
+  ELASTICITY=1.0; // reset elasticity
   trail=[];
 }
 
@@ -140,9 +143,8 @@ function loop(now){
   const g=Math.min(1,elapsed/GROW_DURATION_SEC);
   r=BALL_RADIUS_START+(BALL_RADIUS_END-BALL_RADIUS_START)*g;
 
-  vy+=GRAVITY*dt; // constant gravity downward
+  vy+=GRAVITY*dt;
 
-  // store trail
   trail.push({x,y,r});
   if(trail.length>TRAIL_LENGTH) trail.shift();
 
@@ -160,7 +162,12 @@ function loop(now){
     x=centerX+nx*limit;
     y=centerY+ny*limit;
     const vn=vx*nx+vy*ny;
-    if(vn>0){[vx,vy]=reflectVelocity(vx,vy,nx,ny);}
+    if(vn>0){
+      [vx,vy]=reflectVelocity(vx,vy,nx,ny);
+      if(ELASTICITY < ELASTICITY_MAX){
+        ELASTICITY = Math.min(ELASTICITY_MAX, ELASTICITY + ELASTICITY_STEP);
+      }
+    }
     if(!inContact){
       inContact=true;
       handleCollisionEvent();
@@ -177,13 +184,12 @@ function handleCollisionEvent(){
     musicStopScheduled=true;
     scheduledStopId=setTimeout(()=>{
       if(!audioEl.paused) audioEl.pause();
-    },MUSIC_DELAY_SEC*1000);
+    }, MUSIC_DELAY_SEC*1000);
   }
 }
 
 function draw(){
   ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);
-  // arena
   ctx.save();
   ctx.translate(centerX,centerY);
   ctx.beginPath();
@@ -193,7 +199,6 @@ function draw(){
   ctx.stroke();
   ctx.restore();
 
-  // trail
   for(let i=0;i<trail.length;i++){
     const p=trail[i];
     const alpha=i/trail.length;
@@ -202,7 +207,6 @@ function draw(){
     ctx.fillStyle=`rgba(0,0,0,${alpha*0.4})`;
     ctx.fill();
   }
-  // ball
   ctx.beginPath();
   ctx.arc(x,y,r,0,Math.PI*2);
   ctx.fillStyle='#000';
