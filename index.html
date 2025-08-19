@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Gravity Ball – Rainbow Trail + Random Color Fill</title>
+<title>Gravity Ball – Random Fill + Rainbow Trail + RGB Background</title>
 <style>
-html,body {margin:0;padding:0;background:#fff;color:#111;font-family:sans-serif;}
+html,body {margin:0;padding:0;color:#111;font-family:sans-serif;}
 .wrap {max-width:900px;margin:20px auto;padding:0 16px;}
-canvas {width:100%;height:65vh;min-height:360px;background:#fff;border:1px solid #eee;border-radius:8px;}
+canvas {width:100%;height:65vh;min-height:360px;border:1px solid #eee;border-radius:8px;}
 .controls {display:flex;gap:12px;align-items:center;margin-bottom:12px;}
 .status {font-size:13px;color:#555;}
 .spacer {flex:1;}
@@ -15,7 +15,7 @@ canvas {width:100%;height:65vh;min-height:360px;background:#fff;border:1px solid
 </head>
 <body>
 <div class="wrap">
-<h1>Gravity Ball – Random Fill + Rainbow Trail</h1>
+<h1>Gravity Ball – Random Fill + Rainbow Trail + RGB Background</h1>
 <div class="controls">
 <input id="file" type="file" accept="audio/*"/>
 <span id="fileStatus" class="status">No file loaded</span>
@@ -34,7 +34,7 @@ const BALL_RADIUS_START=10;
 const BALL_RADIUS_END=120;
 const SPEED_INIT=250;
 const GRAVITY=500;
-const ELASTICITY=1.009;
+const ELASTICITY=1.019;
 const BORDER_MARGIN=24;
 const MUSIC_DELAY_SEC=0.2;
 const TRAIL_LENGTH=25;
@@ -43,10 +43,11 @@ const TRAIL_LENGTH=25;
 const RING_WIDTH_PX=5;
 const RING_SEGMENTS=96;
 
-// Well‑known fill colors to pick from
-const KNOWN_COLORS = [
-  'black', 'tan', 'white', 'gray', 'blue', 'green', 'lime' // lime ≈ neon green
-];
+// Well‑known ball colors
+const KNOWN_COLORS = ['black','tan','white','gray','blue','green','lime'];
+
+// Strict RGB backgrounds
+const RGB_BACKGROUNDS = ['rgb(255,0,0)','rgb(0,255,0)','rgb(0,0,255)'];
 
 const canvas=document.getElementById('canvas');
 const ctx=canvas.getContext('2d');
@@ -58,7 +59,7 @@ const audioEl=document.getElementById('player');
 
 let centerX=0, centerY=0, arenaR=0;
 let x=0, y=0, vx=0, vy=0, r=BALL_RADIUS_START;
-let ballColor = 'black';
+let ballColor='black', bgColor='white';
 let running=false, startedAt=0, prevT=0, rafId=0;
 let inContact=false, firstCollision=false, musicStopScheduled=false;
 let scheduledStopId=0, audioLoaded=false, objectUrl=null;
@@ -74,11 +75,8 @@ function resizeCanvas(){
   centerY=canvas.clientHeight/2;
   arenaR=Math.max(40,Math.min(centerX,centerY)-BORDER_MARGIN);
 }
-window.addEventListener('resize',resizeCanvas,{passive:true});
 
-function pickRandomColor(){
-  return KNOWN_COLORS[Math.floor(Math.random()*KNOWN_COLORS.length)];
-}
+function pickRandom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
 function resetBall(){
   const angle=Math.random()*Math.PI*2;
@@ -87,7 +85,8 @@ function resetBall(){
   vx=Math.cos(angle)*SPEED_INIT;
   vy=Math.sin(angle)*SPEED_INIT;
   r=BALL_RADIUS_START;
-  ballColor = pickRandomColor(); // new color each reset
+  ballColor = pickRandom(KNOWN_COLORS);
+  bgColor = pickRandom(RGB_BACKGROUNDS);
   inContact=false;
   firstCollision=false;
   musicStopScheduled=false;
@@ -147,9 +146,7 @@ resetBtn.addEventListener('click',resetAll);
 
 function reflectVelocity(vx,vy,nx,ny){
   const dot=vx*nx+vy*ny;
-  let rx=vx-2*dot*nx;
-  let ry=vy-2*dot*ny;
-  return [rx*ELASTICITY,ry*ELASTICITY];
+  return [ (vx-2*dot*nx)*ELASTICITY, (vy-2*dot*ny)*ELASTICITY ];
 }
 
 function loop(now){
@@ -167,25 +164,18 @@ function loop(now){
   x+=vx*dt;
   y+=vy*dt;
 
-  const dx=x-centerX;
-  const dy=y-centerY;
+  const dx=x-centerX, dy=y-centerY;
   const dist=Math.hypot(dx,dy);
   const limit=Math.max(0,arenaR-r);
 
   if(dist>=limit-0.0001){
-    const nx=dx/dist;
-    const ny=dy/dist;
+    const nx=dx/dist, ny=dy/dist;
     x=centerX+nx*limit;
     y=centerY+ny*limit;
     const vn=vx*nx+vy*ny;
-    if(vn>0){
-      [vx,vy]=reflectVelocity(vx,vy,nx,ny);
-    }
-    if(!inContact){
-      inContact=true;
-      handleCollisionEvent();
-    }
-  } else {inContact=false;}
+    if(vn>0) [vx,vy]=reflectVelocity(vx,vy,nx,ny);
+    if(!inContact){ inContact=true; handleCollisionEvent(); }
+  } else inContact=false;
 
   draw();
   if(running) rafId=requestAnimationFrame(loop);
@@ -195,22 +185,16 @@ function handleCollisionEvent(){
   if(!firstCollision){firstCollision=true;return;}
   if(!musicStopScheduled){
     musicStopScheduled=true;
-    scheduledStopId=setTimeout(()=>{
-      if(!audioEl.paused) audioEl.pause();
-    }, MUSIC_DELAY_SEC*1000);
+    scheduledStopId=setTimeout(()=>{ if(!audioEl.paused) audioEl.pause(); }, MUSIC_DELAY_SEC*1000);
   }
 }
 
-// Rainbow ring
 function drawRainbowRing(cx,cy,rad,widthPx,segments){
   const step=(Math.PI*2)/segments;
   ctx.lineWidth=widthPx;
-  ctx.lineCap='butt';
   for(let i=0;i<segments;i++){
-    const a0=i*step;
-    const a1=(i+1)*step;
-    const hue=(i/segments)*360;
-    ctx.strokeStyle=`hsl(${hue}, 100%, 50%)`;
+    const a0=i*step, a1=(i+1)*step;
+    ctx.strokeStyle=`hsl(${(i/segments)*360}, 100%, 50%)`;
     ctx.beginPath();
     ctx.arc(cx,cy,rad,a0,a1);
     ctx.stroke();
@@ -218,8 +202,11 @@ function drawRainbowRing(cx,cy,rad,widthPx,segments){
 }
 
 function draw(){
-  ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);
-  // arena
+  // background
+  ctx.fillStyle=bgColor;
+  ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
+
+  // arena circle
   ctx.save();
   ctx.translate(centerX,centerY);
   ctx.beginPath();
@@ -229,7 +216,7 @@ function draw(){
   ctx.stroke();
   ctx.restore();
 
-  // trail (rainbow outline matching main ball color fill)
+  // trail
   for(let i=0;i<trail.length;i++){
     const p=trail[i];
     const alpha=i/trail.length;
@@ -243,13 +230,11 @@ function draw(){
     ctx.globalAlpha = 1;
   }
 
-  // main ball fill
+  // main ball
   ctx.beginPath();
   ctx.arc(x,y,r,0,Math.PI*2);
   ctx.fillStyle=ballColor;
   ctx.fill();
-
-  // rainbow outline
   drawRainbowRing(x,y,r,RING_WIDTH_PX,RING_SEGMENTS);
 }
 
@@ -258,4 +243,4 @@ resetBall();
 draw(0);
 </script>
 </body>
-</html>
+</html
