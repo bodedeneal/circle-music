@@ -29,7 +29,7 @@ canvas {width:100%;height:65vh;min-height:360px;border:1px solid #eee;border-rad
 <audio id="player" preload="auto" style="display:none"></audio>
 
 <script>
-const GROW_DURATION_SEC=3;
+const duration = Math.random() * (60 - 25) + 25; // random between 25 and 60 seconds
 const BALL_RADIUS_START=10;
 const BALL_RADIUS_END=310;
 const SPEED_INIT=250;
