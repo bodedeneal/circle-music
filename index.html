@@ -34,7 +34,7 @@ const BALL_RADIUS_START=10;
 const BALL_RADIUS_END=120;
 const SPEED_INIT=250;
 const GRAVITY=500;
-const ELASTICITY=1.0;
+const ELASTICITY=1.019;
 const BORDER_MARGIN=24;
 const MUSIC_DELAY_SEC=0.2;
 const TRAIL_LENGTH=25;
@@ -47,14 +47,13 @@ const RING_SEGMENTS=96;
 const KNOWN_COLORS = ['black','tan','white','gray','blue','green','lime'];
 
 // Light pastel rainbow backgrounds
+// Custom light & vivid rainbow backgrounds (no purple)
 const LIGHT_RAINBOW_BACKGROUNDS = [
   'rgb(255,200,200)', // light red
-  'rgb(255,220,180)', // light orange
-  'rgb(255,255,200)', // light yellow
-  'rgb(200,255,200)', // light green
-  'rgb(200,220,255)', // light blue
-  'rgb(220,200,255)', // light indigo
-  'rgb(245,200,255)'  // light violet
+  'rgb(255,165,0)',   // orange
+  'rgb(255,255,0)',   // yellow
+  'rgb(57,255,20)',   // neon green
+  'rgb(135,206,235)'  // sky blue
 ];
 
 const canvas=document.getElementById('canvas');
