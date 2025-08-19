@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Gravity Ball – Random Fill + Rainbow Trail + RGB Background</title>
+<title>Gravity Ball – Light RGB Background</title>
 <style>
 html,body {margin:0;padding:0;color:#111;font-family:sans-serif;}
 .wrap {max-width:900px;margin:20px auto;padding:0 16px;}
@@ -15,7 +15,7 @@ canvas {width:100%;height:65vh;min-height:360px;border:1px solid #eee;border-rad
 </head>
 <body>
 <div class="wrap">
-<h1>Gravity Ball – Random Fill + Rainbow Trail + RGB Background</h1>
+<h1>Gravity Ball – Light RGB Background</h1>
 <div class="controls">
 <input id="file" type="file" accept="audio/*"/>
 <span id="fileStatus" class="status">No file loaded</span>
@@ -46,8 +46,12 @@ const RING_SEGMENTS=96;
 // Well‑known ball colors
 const KNOWN_COLORS = ['black','tan','white','gray','blue','green','lime'];
 
-// Strict RGB backgrounds
-const RGB_BACKGROUNDS = ['rgb(255,0,0)','rgb(0,255,0)','rgb(0,0,255)'];
+// Light RGB backgrounds
+const LIGHT_RGB_BACKGROUNDS = [
+  'rgb(255,200,200)', // light red
+  'rgb(200,255,200)', // light green
+  'rgb(200,200,255)'  // light blue
+];
 
 const canvas=document.getElementById('canvas');
 const ctx=canvas.getContext('2d');
@@ -86,7 +90,7 @@ function resetBall(){
   vy=Math.sin(angle)*SPEED_INIT;
   r=BALL_RADIUS_START;
   ballColor = pickRandom(KNOWN_COLORS);
-  bgColor = pickRandom(RGB_BACKGROUNDS);
+  bgColor = pickRandom(LIGHT_RGB_BACKGROUNDS);
   inContact=false;
   firstCollision=false;
   musicStopScheduled=false;
@@ -202,17 +206,17 @@ function drawRainbowRing(cx,cy,rad,widthPx,segments){
 }
 
 function draw(){
-  // background
+  // background fill
   ctx.fillStyle=bgColor;
   ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
 
-  // arena circle
+  // arena circle — made thicker here
   ctx.save();
   ctx.translate(centerX,centerY);
   ctx.beginPath();
   ctx.arc(0,0,arenaR,0,Math.PI*2);
   ctx.strokeStyle='#000';
-  ctx.lineWidth=2;
+  ctx.lineWidth=4; // thicker outline
   ctx.stroke();
   ctx.restore();
 
@@ -235,12 +239,3 @@ function draw(){
   ctx.arc(x,y,r,0,Math.PI*2);
   ctx.fillStyle=ballColor;
   ctx.fill();
-  drawRainbowRing(x,y,r,RING_WIDTH_PX,RING_SEGMENTS);
-}
-
-resizeCanvas();
-resetBall();
-draw(0);
-</script>
-</body>
-</html
