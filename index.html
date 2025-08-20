@@ -1,1 +1,246 @@
-<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <title>Gravity Ball – Final Short</title> <meta name="viewport" content="width=device-width, initial-scale=1"> <style> html, body { margin: 0; padding: 0; background: #000; font-family: sans-serif; color: white; text-align: center; } canvas { display: block; margin: 0 auto; background: #000; } .controls { margin: 16px 0; } button { padding: 10px 20px; font-size: 16px; margin: 0 8px; cursor: pointer; } input[type="file"] { margin-top: 10px; } </style> </head> <body> <canvas id="canvas" width="1080" height="1920"></canvas> <div class="controls"> <button id="startBtn">Start</button> <button id="resetBtn">Reset</button> <input type="file" id="audioFile" accept="audio/*"> </div> <audio id="audio" preload="auto" style="display:none"></audio> <script> const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d'); const startBtn = document.getElementById('startBtn'); const resetBtn = document.getElementById('resetBtn'); const audioInput = document.getElementById('audioFile'); const audio = document.getElementById('audio'); let x = canvas.width / 2; let y = canvas.height / 2; let vx = 300; let vy = 200; let radius = 20; let gravity = 500; let elasticity = 1.019; let running = false; let recorder, recordedChunks = []; let startTime = 0; let trail = []; const VIDEO_DURATION = 60000; const GROWTH_RATE = 200 / 45; // grows 200px over 45s — faster than video duration const BALL_COLOR = '#ffffff'; // white const BG_COLOR = '#000000'; // black const RING_WIDTH = 6; const RING_SEGMENTS = 96; audioInput.addEventListener('change', () => { const file = audioInput.files[0]; if (file) { const url = URL.createObjectURL(file); audio.src = url; audio.load(); } }); function resetBall() { x = canvas.width / 2; y = canvas.height / 2; vx = (Math.random() - 0.5) * 600; vy = (Math.random() - 0.5) * 600; radius = 20; trail = []; } function drawRainbowRing(cx, cy, rad, width, segments) { const step = (Math.PI * 2) / segments; ctx.lineWidth = width; for (let i = 0; i < segments; i++) { const a0 = i * step; const a1 = (i + 1) * step; ctx.strokeStyle = `hsl(${(i / segments) * 360}, 100%, 50%)`; ctx.beginPath(); ctx.arc(cx, cy, rad, a0, a1); ctx.stroke(); } } function drawFrame(elapsed) { ctx.fillStyle = BG_COLOR; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#fff'; ctx.font = 'bold 64px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('Watch What Will Happen', canvas.width / 2, 120); for (const t of trail) { ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2); ctx.fillStyle = BALL_COLOR; ctx.globalAlpha = 0.2; ctx.fill(); ctx.globalAlpha = 1; drawRainbowRing(t.x, t.y, t.r, RING_WIDTH, RING_SEGMENTS); } ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fillStyle = BALL_COLOR; ctx.fill(); drawRainbowRing(x, y, radius, RING_WIDTH, RING_SEGMENTS); } function reflect(vx, vy, nx, ny) { const dot = vx * nx + vy * ny; return [(vx - 2 * dot * nx) * elasticity, (vy - 2 * dot * ny) * elasticity]; } function animate(timestamp) { if (!startTime) startTime = timestamp; const elapsed = (timestamp - startTime) / 1000; const dt = 1 / 60; radius = 20 + elapsed * GROWTH_RATE; vy += gravity * dt; x += vx * dt; y += vy * dt; trail.push({ x, y, r: radius }); if (trail.length > 30) trail.shift(); const dx = x - canvas.width / 2; const dy = y - canvas.height / 2; const dist = Math.hypot(dx, dy); const maxDist = Math.min(canvas.width, canvas.height) / 2 - radius; if (dist >= maxDist) { const nx = dx / dist; const ny = dy / dist; x = canvas.width / 2 + nx * maxDist; y = canvas.height / 2 + ny * maxDist; [vx, vy] = reflect(vx, vy, nx, ny); } drawFrame(elapsed); if (running) requestAnimationFrame(animate); } startBtn.addEventListener('click', () => { startBtn.disabled = true; setTimeout(() => { resetBall(); running = true; startTime = 0; if (audio.src) audio.play(); const stream = canvas.captureStream(60); recorder = new MediaRecorder(stream, { mimeType: 'video/webm' }); recordedChunks = []; recorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); }; recorder.onstop = () => { const blob = new Blob(recordedChunks, { type: 'video/webm' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'gravity-ball-final.webm'; a.click(); URL.revokeObjectURL(url); }; recorder.start(); requestAnimationFrame(animate); setTimeout(() => { recorder.stop(); running = false; startBtn.disabled = false; if (!audio.paused) audio.pause(); }, VIDEO_DURATION); }, 1000); }); resetBtn.addEventListener('click', () => { running = false; startBtn.disabled = false; if (!audio.paused) audio.pause(); resetBall(); drawFrame(0); }); resetBall(); drawFrame(0); </script> </body> </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Gravity Ball – Rainbow Arena</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      font-family: 'Orbitron', sans-serif;
+      color: white;
+      text-align: center;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #000;
+    }
+    .controls {
+      margin: 16px 0;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 0 8px;
+      cursor: pointer;
+    }
+    input[type="file"] {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="canvas" width="1080" height="1920"></canvas>
+
+<div class="controls">
+  <button id="startBtn">Start</button>
+  <button id="resetBtn">Reset</button>
+  <input type="file" id="audioFile" accept="audio/*">
+</div>
+
+<audio id="audio" preload="auto" style="display:none"></audio>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const startBtn = document.getElementById('startBtn');
+const resetBtn = document.getElementById('resetBtn');
+const audioInput = document.getElementById('audioFile');
+const audio = document.getElementById('audio');
+
+let x = canvas.width / 2;
+let y = canvas.height / 2;
+let vx = 300;
+let vy = 200;
+let radius = 20;
+let gravity = 500;
+let elasticity = 1.019;
+let running = false;
+let recorder, recordedChunks = [];
+let startTime = 0;
+let trail = [];
+
+const VIDEO_DURATION = 60000;
+const GROWTH_RATE = 200 / 45;
+const RING_WIDTH = 6;
+
+const BACKGROUND_COLORS = [
+  'rgb(255,200,200)', // light red
+  'rgb(255,180,120)', // orange
+  'rgb(255,255,180)', // yellow
+  'rgb(120,255,120)', // neon green
+  'rgb(180,220,255)'  // sky blue
+];
+
+const CONTRAST_COLORS = [
+  '#222', '#444', '#666', '#888', '#aaa', '#ccc', '#eee'
+];
+
+let backgroundColor = BACKGROUND_COLORS[Math.floor(Math.random() * BACKGROUND_COLORS.length)];
+let ballFillColor = CONTRAST_COLORS[Math.floor(Math.random() * CONTRAST_COLORS.length)];
+
+audioInput.addEventListener('change', () => {
+  const file = audioInput.files[0];
+  if (file) {
+    const url = URL.createObjectURL(file);
+    audio.src = url;
+    audio.load();
+  }
+});
+
+function resetBall() {
+  x = canvas.width / 2;
+  y = canvas.height / 2;
+  vx = (Math.random() - 0.5) * 600;
+  vy = (Math.random() - 0.5) * 600;
+  radius = 20;
+  trail = [];
+  backgroundColor = BACKGROUND_COLORS[Math.floor(Math.random() * BACKGROUND_COLORS.length)];
+  ballFillColor = CONTRAST_COLORS[Math.floor(Math.random() * CONTRAST_COLORS.length)];
+}
+
+function drawArena() {
+  const arenaRadius = Math.min(canvas.width, canvas.height) / 2 - 20;
+  ctx.fillStyle = backgroundColor;
+  ctx.beginPath();
+  ctx.arc(canvas.width / 2, canvas.height / 2, arenaRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = RING_WIDTH;
+  ctx.strokeStyle = '#000';
+  ctx.stroke();
+}
+
+function drawRainbowOutline(x, y, r) {
+  const segments = 60;
+  const step = (Math.PI * 2) / segments;
+  ctx.lineWidth = RING_WIDTH;
+  for (let i = 0; i < segments; i++) {
+    const a0 = i * step;
+    const a1 = (i + 1) * step;
+    ctx.strokeStyle = `hsl(${(i / segments) * 360}, 100%, 50%)`;
+    ctx.beginPath();
+    ctx.arc(x, y, r, a0, a1);
+    ctx.stroke();
+  }
+}
+
+function drawFrame(elapsed) {
+  ctx.fillStyle = backgroundColor;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  drawArena();
+
+  ctx.fillStyle = '#000';
+  ctx.font = 'bold 64px Orbitron';
+  ctx.textAlign = 'center';
+  ctx.fillText('Watch What Will Happen', canvas.width / 2, canvas.height * 0.2);
+
+  for (const t of trail) {
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
+    ctx.fillStyle = ballFillColor;
+    ctx.globalAlpha = 0.2;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    drawRainbowOutline(t.x, t.y, t.r);
+  }
+
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fillStyle = ballFillColor;
+  ctx.fill();
+  drawRainbowOutline(x, y, radius);
+}
+
+function reflect(vx, vy, nx, ny) {
+  const dot = vx * nx + vy * ny;
+  return [(vx - 2 * dot * nx) * elasticity, (vy - 2 * dot * ny) * elasticity];
+}
+
+function animate(timestamp) {
+  if (!startTime) startTime = timestamp;
+  const elapsed = (timestamp - startTime) / 1000;
+  const dt = 1 / 60;
+
+  radius = 20 + elapsed * GROWTH_RATE;
+
+  vy += gravity * dt;
+  x += vx * dt;
+  y += vy * dt;
+
+  trail.push({ x, y, r: radius });
+  if (trail.length > 30) trail.shift();
+
+  const dx = x - canvas.width / 2;
+  const dy = y - canvas.height / 2;
+  const dist = Math.hypot(dx, dy);
+  const maxDist = Math.min(canvas.width, canvas.height) / 2 - radius;
+
+  if (dist >= maxDist) {
+    const nx = dx / dist;
+    const ny = dy / dist;
+    x = canvas.width / 2 + nx * maxDist;
+    y = canvas.height / 2 + ny * maxDist;
+    [vx, vy] = reflect(vx, vy, nx, ny);
+  }
+
+  drawFrame(elapsed);
+  if (running) requestAnimationFrame(animate);
+}
+
+startBtn.addEventListener('click', () => {
+  startBtn.disabled = true;
+  setTimeout(() => {
+    resetBall();
+    running = true;
+    startTime = 0;
+    if (audio.src) audio.play();
+
+    const stream = canvas.captureStream(60);
+    recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+    recordedChunks = [];
+
+    recorder.ondataavailable = e => {
+      if (e.data.size > 0) recordedChunks.push(e.data);
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'gravity-ball-rainbow.webm';
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    recorder.start();
+    requestAnimationFrame(animate);
+
+    setTimeout(() => {
+      recorder.stop();
+      running = false;
+      startBtn.disabled = false;
+      if (!audio.paused) audio.pause();
+    }, VIDEO_DURATION);
+  }, 1000);
+});
+
+resetBtn.addEventListener('click', () => {
+  running = false;
+  startBtn.disabled = false;
+  if (!audio.paused) audio.pause();
+  resetBall();
+  drawFrame(0);
+});
+
+resetBall();
+drawFrame(0);
+</script>
+</body>
+</html>
