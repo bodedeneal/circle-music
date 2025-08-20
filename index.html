@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Gravity Ball – Final Short</title>
+  <title>Gravity Ball – Final Short (with Collision Sound)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     html, body {
@@ -28,18 +28,7 @@
       cursor: pointer;
     }
     input[type="file"] {
-      margin-top: 10px;
-    }
-    .row {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    label {
-      font-size: 14px;
-      color: #ccc;
+      margin: 6px;
     }
   </style>
 </head>
@@ -48,42 +37,33 @@
 <canvas id="canvas" width="1080" height="1920"></canvas>
 
 <div class="controls">
-  <div class="row">
-    <button id="startBtn">Start</button>
-    <button id="resetBtn">Reset</button>
-  </div>
-  <div class="row">
-    <label>
-      Background/track:
-      <input type="file" id="audioFile" accept="audio/*">
-    </label>
-    <!-- ADDED: optional collision sound file -->
-    <label>
-      Collision sound:
-      <input type="file" id="hitFile" accept="audio/*">
-    </label>
-  </div>
+  <button id="startBtn">Start</button>
+  <button id="resetBtn">Reset</button><br>
+  <label>
+    Background/track:
+    <input type="file" id="audioFile" accept="audio/*">
+  </label>
+  <label>
+    Collision sound:
+    <input type="file" id="hitFile" accept="audio/*">
+  </label>
 </div>
 
 <audio id="audio" preload="auto" style="display:none"></audio>
-<!-- ADDED: separate audio element for collision hits -->
 <audio id="hitAudio" preload="auto" style="display:none"></audio>
 
 <script>
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+
 const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('resetBtn');
 const audioInput = document.getElementById('audioFile');
-const hitInput = document.getElementById('hitFile'); // ADDED
+const hitInput = document.getElementById('hitFile');
 const audio = document.getElementById('audio');
-const hitAudio = document.getElementById('hitAudio'); // ADDED
+const hitAudio = document.getElementById('hitAudio');
 
-let x = canvas.width / 2;
-let y = canvas.height / 2;
-let vx = 300;
-let vy = 200;
-let radius = 20;
+let x, y, vx, vy, radius;
 let gravity = 500;
 let elasticity = 1.019;
 let running = false;
@@ -92,9 +72,9 @@ let startTime = 0;
 let trail = [];
 
 const VIDEO_DURATION = 60000;
-const GROWTH_RATE = 200 / 45; // grows 200px over 45s — faster than video duration
-const BALL_COLOR = '#ffffff'; // white
-const BG_COLOR = '#000000';   // black
+const GROWTH_RATE = 200 / 45;
+const BALL_COLOR = '#ffffff';
+const BG_COLOR = '#000000';
 const RING_WIDTH = 6;
 const RING_SEGMENTS = 96;
 
@@ -107,7 +87,6 @@ audioInput.addEventListener('change', () => {
   }
 });
 
-// ADDED: load collision sound file
 hitInput.addEventListener('change', () => {
   const file = hitInput.files[0];
   if (file) {
@@ -117,18 +96,13 @@ hitInput.addEventListener('change', () => {
   }
 });
 
-// ADDED: play collision sound (allows overlap by cloning the node)
 function playCollisionSound() {
-  // If no dedicated collision file, fall back to the main audio file
   if (!hitAudio.src && audio.src) {
     hitAudio.src = audio.src;
     hitAudio.load();
   }
   if (!hitAudio.src) return;
-
   const fx = hitAudio.cloneNode(true);
-  // Keep it short if the file is long (optional): fx.currentTime = 0;
-  fx.volume = 1.0;
   fx.play().catch(() => {});
 }
 
@@ -142,41 +116,48 @@ function resetBall() {
 }
 
 function drawRainbowRing(cx, cy, rad, width, segments) {
-  const step = (Math.PI * 2) / segments;
+  ctx.save();
   ctx.lineWidth = width;
+  const step = (Math.PI * 2) / segments;
   for (let i = 0; i < segments; i++) {
     const a0 = i * step;
-    const a1 = (i + 1) * step;
-    ctx.strokeStyle = `hsl(${(i / segments) * 360}, 100%, 50%)`;
+    const a1 = a0 + step;
     ctx.beginPath();
+    ctx.strokeStyle = `hsl(${(i / segments) * 360}, 100%, 50%)`;
     ctx.arc(cx, cy, rad, a0, a1);
     ctx.stroke();
   }
+  ctx.restore();
 }
 
 function drawFrame(elapsed) {
   ctx.fillStyle = BG_COLOR;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  ctx.save();
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 64px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('Watch What Will Happen', canvas.width / 2, 120);
+  ctx.restore();
 
   for (const t of trail) {
+    ctx.save();
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = BALL_COLOR;
     ctx.beginPath();
     ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
-    ctx.fillStyle = BALL_COLOR;
-    ctx.globalAlpha = 0.2;
     ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.restore();
     drawRainbowRing(t.x, t.y, t.r, RING_WIDTH, RING_SEGMENTS);
   }
 
+  ctx.save();
+  ctx.fillStyle = BALL_COLOR;
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.fillStyle = BALL_COLOR;
   ctx.fill();
+  ctx.restore();
   drawRainbowRing(x, y, radius, RING_WIDTH, RING_SEGMENTS);
 }
 
@@ -210,8 +191,6 @@ function animate(timestamp) {
     x = canvas.width / 2 + nx * maxDist;
     y = canvas.height / 2 + ny * maxDist;
     [vx, vy] = reflect(vx, vy, nx, ny);
-
-    // ADDED: play sound exactly when touching the outside
     playCollisionSound();
   }
 
