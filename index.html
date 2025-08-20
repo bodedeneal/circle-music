@@ -63,11 +63,12 @@ let elasticity = 1.019;
 let running = false;
 let recorder, recordedChunks = [];
 let startTime = 0;
+let lastFrameTime = 0;
 let trail = [];
 
-// NEW: Track last collision for audio gating
+// Updated: collision grace period
 let lastCollisionTime = 0;
-const COLLISION_GRACE = 200; // ms
+const COLLISION_GRACE = 350; // ms
 
 const VIDEO_DURATION = 60000;
 const GROWTH_RATE = 200 / 45;
@@ -166,7 +167,6 @@ function reflect(vx, vy, nx, ny) {
   return [(vx - 2 * dot * nx) * elasticity, (vy - 2 * dot * ny) * elasticity];
 }
 
-// NEW: Collision-triggered audio handler
 function handleCollisionSound() {
   lastCollisionTime = performance.now();
   if (audio.src && audio.paused) {
@@ -177,8 +177,10 @@ function handleCollisionSound() {
 
 function animate(timestamp) {
   if (!startTime) startTime = timestamp;
+  if (!lastFrameTime) lastFrameTime = timestamp;
   const elapsed = (timestamp - startTime) / 1000;
-  const dt = 1 / 60;
+  const dt = (timestamp - lastFrameTime) / 1000;
+  lastFrameTime = timestamp;
 
   radius = 20 + elapsed * GROWTH_RATE;
 
@@ -187,7 +189,7 @@ function animate(timestamp) {
   y += vy * dt;
 
   trail.push({ x, y, r: radius });
-  if (trail.length > 30) trail.shift();
+  if (trail.length > 25) trail.shift(); // reduced from 30
 
   const dx = x - canvas.width / 2;
   const dy = y - canvas.height / 2;
@@ -200,12 +202,9 @@ function animate(timestamp) {
     x = canvas.width / 2 + nx * maxDist;
     y = canvas.height / 2 + ny * maxDist;
     [vx, vy] = reflect(vx, vy, nx, ny);
-
-    // Trigger sound on collision
     handleCollisionSound();
   }
 
-  // Pause if no recent collision
   if (lastCollisionTime && performance.now() - lastCollisionTime > COLLISION_GRACE) {
     if (!audio.paused) audio.pause();
   }
@@ -220,6 +219,7 @@ startBtn.addEventListener('click', () => {
     resetBall();
     running = true;
     startTime = 0;
+    lastFrameTime = 0;
 
     const stream = canvas.captureStream(60);
     recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
@@ -239,7 +239,7 @@ startBtn.addEventListener('click', () => {
       URL.revokeObjectURL(url);
     };
 
-    recorder.start();
+       recorder.start();
     requestAnimationFrame(animate);
 
     setTimeout(() => {
@@ -259,6 +259,7 @@ resetBtn.addEventListener('click', () => {
   drawFrame(0);
 });
 
+// kick things off with an initial draw
 resetBall();
 drawFrame(0);
 </script>
