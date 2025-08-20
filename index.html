@@ -13,6 +13,7 @@
       font-family: 'Orbitron', sans-serif;
       color: white;
       text-align: center;
+      overflow: hidden;
     }
     canvas {
       display: block;
@@ -46,7 +47,6 @@
 <body>
 
 <canvas id="canvas" width="1080" height="1920"></canvas>
-
 <video id="centerVideo" muted></video>
 
 <div class="controls">
@@ -60,7 +60,6 @@
 <audio id="audio" preload="auto" style="display:none"></audio>
 
 <script>
-// DOM elements
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const startBtn = document.getElementById('startBtn');
@@ -70,7 +69,6 @@ const videoInput = document.getElementById('videoFile');
 const audio = document.getElementById('audio');
 const centerVideo = document.getElementById('centerVideo');
 
-// Ball physics
 let x, y, vx, vy, radius, trail;
 let gravity = 500;
 let elasticity = 1.019;
@@ -88,6 +86,10 @@ const BACKGROUND_COLORS = ['rgb(255,200,200)','rgb(255,180,120)','rgb(255,255,18
 const CONTRAST_COLORS = ['#222','#444','#666','#888','#aaa','#ccc','#eee'];
 const TITLE_TEXTS = ['Watch What Will Happen','Wait Till The End','Don’t Blink','Gravity Unleashed','Bounce to the Beat'];
 const TITLE_FONTS = ['Orbitron','Bangers','Audiowide'];
+
+let titleText = 'Watch What Will Happen';
+let titleFont = 'Orbitron';
+let titleLocked = false;
 
 audioInput.addEventListener('change', () => {
   const file = audioInput.files[0];
@@ -148,12 +150,16 @@ function drawFrame(elapsed) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   drawArena();
 
-  const title = TITLE_TEXTS[Math.floor(Math.random() * TITLE_TEXTS.length)];
-  const font = TITLE_FONTS[Math.floor(Math.random() * TITLE_FONTS.length)];
+  if (!titleLocked) {
+    titleText = TITLE_TEXTS[Math.floor(Math.random() * TITLE_TEXTS.length)];
+    titleFont = TITLE_FONTS[Math.floor(Math.random() * TITLE_FONTS.length)];
+    titleLocked = true;
+  }
+
   ctx.fillStyle = '#000';
-  ctx.font = `bold 64px ${font}`;
+  ctx.font = `bold 64px ${titleFont}`;
   ctx.textAlign = 'center';
-  ctx.fillText(title, canvas.width / 2, canvas.height * 0.2);
+  ctx.fillText(titleText, canvas.width / 2, canvas.height * 0.2);
 
   const arenaRadius = Math.min(canvas.width, canvas.height) / 2 - RING_WIDTH;
 
@@ -217,7 +223,7 @@ function animate(timestamp) {
   if (!startTime) startTime = timestamp;
   if (!lastFrameTime) lastFrameTime = timestamp;
   const elapsed = (timestamp - startTime) / 1000;
-  const dt = (timestamp - lastFrameTime) / 1000;
+    const dt = (timestamp - lastFrameTime) / 1000;
   lastFrameTime = timestamp;
 
   radius = 20 + elapsed * GROWTH_RATE;
@@ -259,8 +265,11 @@ function animate(timestamp) {
   if (running) requestAnimationFrame(animate);
 }
 
+// Start button logic
 startBtn.addEventListener('click', () => {
   startBtn.disabled = true;
+  titleLocked = false; // Reset title for new run
+
   setTimeout(() => {
     resetBall();
     running = true;
@@ -298,19 +307,20 @@ startBtn.addEventListener('click', () => {
   }, 1000);
 });
 
+// Reset button logic
 resetBtn.addEventListener('click', () => {
   running = false;
   startBtn.disabled = false;
+  titleLocked = false;
   if (!audio.paused) audio.pause();
   if (!centerVideo.paused) centerVideo.pause();
   resetBall();
   drawFrame(0);
 });
 
-// Initial draw
+// Initial setup
 resetBall();
 drawFrame(0);
 </script>
 </body>
 </html>
-
