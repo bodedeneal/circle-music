@@ -65,16 +65,20 @@ let recorder, recordedChunks = [];
 let startTime = 0;
 let trail = [];
 
+// NEW: Track last collision for audio gating
+let lastCollisionTime = 0;
+const COLLISION_GRACE = 200; // ms
+
 const VIDEO_DURATION = 60000;
 const GROWTH_RATE = 200 / 45;
 const RING_WIDTH = 6;
 
 const BACKGROUND_COLORS = [
-  'rgb(255,200,200)', // light red
-  'rgb(255,180,120)', // orange
-  'rgb(255,255,180)', // yellow
-  'rgb(120,255,120)', // neon green
-  'rgb(180,220,255)'  // sky blue
+  'rgb(255,200,200)',
+  'rgb(255,180,120)',
+  'rgb(255,255,180)',
+  'rgb(120,255,120)',
+  'rgb(180,220,255)'
 ];
 
 const CONTRAST_COLORS = [
@@ -162,6 +166,15 @@ function reflect(vx, vy, nx, ny) {
   return [(vx - 2 * dot * nx) * elasticity, (vy - 2 * dot * ny) * elasticity];
 }
 
+// NEW: Collision-triggered audio handler
+function handleCollisionSound() {
+  lastCollisionTime = performance.now();
+  if (audio.src && audio.paused) {
+    audio.currentTime = 0;
+    audio.play().catch(()=>{});
+  }
+}
+
 function animate(timestamp) {
   if (!startTime) startTime = timestamp;
   const elapsed = (timestamp - startTime) / 1000;
@@ -187,6 +200,14 @@ function animate(timestamp) {
     x = canvas.width / 2 + nx * maxDist;
     y = canvas.height / 2 + ny * maxDist;
     [vx, vy] = reflect(vx, vy, nx, ny);
+
+    // Trigger sound on collision
+    handleCollisionSound();
+  }
+
+  // Pause if no recent collision
+  if (lastCollisionTime && performance.now() - lastCollisionTime > COLLISION_GRACE) {
+    if (!audio.paused) audio.pause();
   }
 
   drawFrame(elapsed);
@@ -199,7 +220,6 @@ startBtn.addEventListener('click', () => {
     resetBall();
     running = true;
     startTime = 0;
-    if (audio.src) audio.play();
 
     const stream = canvas.captureStream(60);
     recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
