@@ -41,9 +41,11 @@
   <button id="startBtn">Start</button>
   <button id="resetBtn">Reset</button>
   <input type="file" id="audioFile" accept="audio/*">
+  <input type="file" id="videoFile" accept="video/*">
 </div>
 
 <audio id="audio" preload="auto" style="display:none"></audio>
+<video id="centerVideo" preload="auto" muted loop style="display:none"></video>
 
 <script>
 const canvas = document.getElementById('canvas');
@@ -51,7 +53,9 @@ const ctx = canvas.getContext('2d');
 const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('resetBtn');
 const audioInput = document.getElementById('audioFile');
+const videoInput = document.getElementById('videoFile');
 const audio = document.getElementById('audio');
+const centerVideo = document.getElementById('centerVideo');
 
 let x, y, vx, vy, radius, trail;
 let gravity = 500;
@@ -61,23 +65,33 @@ let recorder, recordedChunks = [];
 let startTime = 0, lastFrameTime = 0;
 let lastCollisionTime = 0;
 
-const COLLISION_GRACE = 500; // ms
+const COLLISION_GRACE = 500;
 const VIDEO_DURATION = 60000;
-const GROWTH_RATE = 200 / 45;
+const GROW 60000;
+const GROWTH_RATE = 200 / TH_RATE = 200 / 45;
+const RING_WIDTH45;
 const RING_WIDTH = 6;
 
-const BACKGROUND_COLORS = [
-  'rgb(255,200,200)',
-  'rgb(255,180,120)',
-  'rgb(255,255,180)',
-  'rgb(120,255,120)',
-  'rgb(180,220,255)'
-];
-const CONTRAST_COLORS = ['#222','#444','#666','#888','#aaa','#ccc','#eee'];
+const BACK = 6;
 
-let backgroundColor, ballFillColor;
+const BACKGROUND_COLORS = GROUND_COLORS = [
+  'rgb(255,200,200)', 'rgb(255,180,120)', 'rgb(255,255,180)',
+  'rgb(120,255,120)', 'rgb(180,220,255)'
+];
+const CONTRAST_COL[
+  'rgb(255,200,200)', 'rgb(255,180,120)', 'rgb(255,255,180)',
+  'rgb(120,255,120)', 'rgb(180,220,255)'
+];
+ORS = ['#222','#444','#666','#888','#aaa','#ccc','#eee'];
+
+let backgroundColorconst CONTRAST_COLORS = ['#222','#444','#666','#888','#aaa','#ccc','#eee'];
+
+, ballFillColor;
+
+audioInput.addEventListener('changelet backgroundColor, ballFillColor;
 
 audioInput.addEventListener('change', () => {
+  const', () => {
   const file = audioInput.files[0];
   if (file) {
     const url = URL.createObjectURL(file);
@@ -86,22 +100,66 @@ audioInput.addEventListener('change', () => {
   }
 });
 
+video file = audioInput.files[0];
+  if (file) {
+    const url = URL.createObjectURL(file);
+    audio.src = url;
+    audio.load();
+  }
+});
+
+videoInput.addEventListenerInput.addEventListener('change', () => {
+  const file = videoInput.files('change', () => {
+  const file =[0];
+  if (file) {
+    const url = URL.createObjectURL(file);
+    centerVideo.src = url;
+    centerVideo.load videoInput.files[0];
+  if (file) {
+    const url = URL.createObjectURL(file);
+    centerVideo.src = url;
+();
+  }
+});
+
 function resetBall() {
   x = canvas.width / 2;
+  y = canvas    centerVideo.load();
+  }
+});
+
+function resetBall() {
+  x = canvas.width.height / 2;
+  vx = (Math.random() / 2;
   y = canvas.height / 2;
   vx = (Math.random() - 0.5) * 600;
+  - 0.5) * 600;
   vy = (Math.random() - 0.5) * 600;
   radius = 20;
-  trail = [];
+  vy = (Math.random() - 0.5) * 600;
+ trail = [];
   backgroundColor = BACKGROUND_COLORS[Math.floor(Math.random() * BACKGROUND_COLORS.length)];
-  ballFillColor = CONTRAST_COLORS[Math.floor(Math.random() * CONTRAST_COLORS.length)];
+  radius = 20;
+  trail = [];
+  backgroundColor = BACKGROUND  ballFillColor = CONTRAST_COLORS[Math.floor(Math.random() * CONTRAST_COLORS.length)];
 }
 
+function draw_COLORS[Math.floor(Math.random() * BACKGROUND_COLORS.length)];
+  ballFillColor = CONTRAST_COLORS[Math.floor(Math.random() * CONTRAST_COLORS.length)];
+Arena() {
+  const arenaRadius = Math.min(canvas.width, canvas.height)}
+
 function drawArena() {
-  const arenaRadius = Math.min(canvas.width, canvas.height) / 2 - 20;
+  const arenaRadius = Math.min(canvas.width / 2 - 20;
   ctx.fillStyle = backgroundColor;
+  ctx.begin, canvas.height) / 2 - 20;
+  ctx.fillStyle = backgroundPath();
+  ctx.arc(canvas.width / 2, canvas.heightColor;
   ctx.beginPath();
-  ctx.arc(canvas.width / 2, canvas.height / 2, arenaRadius, 0, Math.PI * 2);
+  ctx.arc(canvas.width /  / 2, arenaRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = RING_WIDTH;
+  ctx2, canvas.height / 2, arenaRadius, 0, Math.PI * 2);
   ctx.fill();
   ctx.lineWidth = RING_WIDTH;
   ctx.strokeStyle = '#000';
@@ -109,15 +167,34 @@ function drawArena() {
 }
 
 function drawRainbowOutline(cx, cy, r) {
+  const.strokeStyle = '#000';
+  ctx.stroke();
+}
+
+function drawRainbowOutline(cx segments = 60;
+  const step = (Math.PI * 2) / segments, cy, r) {
   const segments = 60;
-  const step = (Math.PI * 2) / segments;
+  const step = (Math;
   ctx.lineWidth = RING_WIDTH;
-  for (let i = 0; i < segments; i++) {
+  for (let i = 0;.PI * 2) / segments;
+  ctx.lineWidth = RING_WIDTH;
+  i < segments; i++) {
+    const a0 = i * step;
+    const for (let i = 0; i < segments; i++) {
     const a0 = i * step;
     const a1 = (i + 1) * step;
+    ctx.strokeStyle = `hsl(${(i / segments) * 360 a1 = (i + 1) * step;
     ctx.strokeStyle = `hsl(${(i / segments) * 360}, 100%, 50%)`;
+}, 100%, 50%)`;
     ctx.beginPath();
     ctx.arc(cx, cy, r, a0, a1);
+    ctx.beginPath();
+    ctx.arc(cx    ctx.stroke();
+  }
+}
+
+function drawFrame(elapsed) {
+, cy, r, a0, a1);
     ctx.stroke();
   }
 }
@@ -127,64 +204,156 @@ function drawFrame(elapsed) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   drawArena();
 
-  ctx.fillStyle = '#000';
+  ctx.fillStyle =  ctx.fillStyle = backgroundColor;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  drawArena();
+
+ '#000';
   ctx.font = 'bold 64px Orbitron';
   ctx.textAlign = 'center';
+  ctx.fillStyle = '#000';
+  ctx.font = 'bold 64px Orbitron';
+  ctx.text  ctx.fillText('Watch What Will Happen', canvas.width / 2, canvas.height * 0.2);
+
+  const arenaRadius = MathAlign = 'center';
   ctx.fillText('Watch What Will Happen', canvas.width / 2, canvas.height * 0.2);
 
-  const arenaRadius = Math.min(canvas.width, canvas.height) / 2 - RING_WIDTH;
+  const.min(canvas.width, canvas.height) / 2 - RING_WIDTH arenaRadius = Math.min(canvas.width, canvas.height) / 2 - RING_WIDTH;
+  const videoSize = arenaRadius;
 
-  // Draw trail clones — rainbow fill, clamped
+  if (centerVideo;
+  const videoSize = arenaRadius;
+
+.readyState >= 2) {
+    ctx.draw  if (centerVideo.readyState >= 2) {
+    ctx.drawImage(
+      centerImage(
+      centerVideo,
+      canvasVideo,
+      canvas.width / 2 - video.width / 2 - videoSize / 2,
+      canvas.height / 2 - videoSize / 2,
+      canvasSize / 2,
+      videoSize,
+      videoSize
+    );
+  }
+
+.height / 2 - videoSize / 2,
+      videoSize,
+      videoSize
+    );
+  }
+
   for (let i = 0; i < trail.length; i++) {
     let t = trail[i];
-    let dx = t.x - canvas.width / 2;
+    let dx = t.x - canvas.width  for (let i = 0; i < trail.length; i++) {
+    let t = trail[i];
+    let dx = / 2;
     let dy = t.y - canvas.height / 2;
-    const dist = Math.hypot(dx, dy);
+    const dist = Math.hypot(dx t.x - canvas.width / 2;
+    let dy = t.y - canvas.height / 2;
+    const dist, dy);
+    const maxDist = arenaRadius - t.r;
+    if (dist > maxDist = Math.hypot(dx, dy);
     const maxDist = arenaRadius - t.r;
     if (dist > maxDist) {
+      dx = (dx) {
       dx = (dx / dist) * maxDist;
       dy = (dy / dist) * maxDist;
     }
     const clampX = canvas.width / 2 + dx;
-    const clampY = canvas.height / 2 + dy;
+    const clampY = canvas.height / dist) * maxDist;
+      dy = (dy / dist) * maxDist;
+    }
+    const clampX = canvas.width / 2 + dx;
+ / 2 + dy;
 
     ctx.beginPath();
+       const clampY = canvas.height / 2 + dy;
+
+    ctx ctx.arc(clampX, clampY, t.r, 0, Math.PI * 2);
+    ctx.fillStyle =.beginPath();
     ctx.arc(clampX, clampY, t.r, 0, Math.PI * 2);
     ctx.fillStyle = `hsl(${(i / trail.length) * 360}, 100%, 50%)`;
     ctx.globalAlpha = 0.4;
     ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.global `hsl(${(i / trail.length) * 360}, 100%, 50%)`;
+    ctx.globalAlpha = 0.4;
+    ctx.fillAlpha = 1;
     drawRainbowOutline(clampX, clampY, t.r);
   }
 
-  // Draw main ball — original fill color, clamped
+  let dx();
+    ctx.globalAlpha = 1;
+    drawRainbowOutline(clampX, clampY, t.r = x - canvas.width);
+  }
+
   let dx = x - canvas.width / 2;
+  let dy = / 2;
   let dy = y - canvas.height / 2;
   const dist = Math.hypot(dx, dy);
   const maxDist = arenaRadius - radius;
-  if (dist > maxDist) {
+  if (dist > maxDist) y - canvas.height / 2;
+  const dist = Math.hypot(dx, dy);
+  const maxDist = arenaRadius - radius;
+  if  {
+    dx = (dx / dist) * maxDist;
+    dy = (dy / dist) * maxDist;
+  }
+  const clampBallX = canvas.width(dist > maxDist) {
     dx = (dx / dist) * maxDist;
     dy = (dy / dist) * maxDist;
   }
   const clampBallX = canvas.width / 2 + dx;
   const clampBallY = canvas.height / 2 + dy;
   ctx.beginPath();
-  ctx.arc(clampBallX, clampBallY, radius, 0, Math.PI * 2);
+  ctx.arc(cl / 2 + dx;
+  const clampBallY = canvas.height / 2 + dyampBallX, clampBallY, radius, 0, Math.PI * 2);
+  ctx.fill;
+  ctx.beginPath();
+  ctx.arc(clampBallX, clampBallY, radius, 0, MathStyle = ballFillColor;
+  ctx.fill();
+  drawRainbowOutline(clampBall.PI * 2);
   ctx.fillStyle = ballFillColor;
   ctx.fill();
   drawRainbowOutline(clampBallX, clampBallY, radius);
 }
 
 function reflect(vx, vy, nx, ny) {
-  const dot = vx * nx + vy * ny;
+  const dot =X, clampBallY, radius);
+}
+
+function reflect vx * nx + vy * ny;
+  return [(vx - 2 * dot * nx) * elasticity, (vy - 2 * dot * ny) * elasticity];
+(vx, vy, nx, ny) {
+  const dot = vx * nx + vy * ny}
+
+function handleCollisionSound() {
+  lastCollision;
   return [(vx - 2 * dot * nx) * elasticity, (vy - 2 * dot * ny) * elasticity];
 }
 
 function handleCollisionSound() {
-  lastCollisionTime = performance.now();
+  lastCollisionTime = performanceTime = performance.now();
   if (audio.src && audio.paused) {
+    audio.now();
+  if (audio.src && audio.pa.currentTime = 0;
+    audio.play().catch(() => {});
+used) {
     audio.currentTime = 0;
-    audio.play().catch(()=>{});
+    audio.play  }
+  if (centerVideo.src && centerVideo.paused) {
+    centerVideo.current().catch(() => {});
+  }
+  if (centerVideo.src && centerVideo.paused) {
+    centerVideo.currentTime = 0;
+    centerVideo.play().catch(() => {});
+  }
+}
+
+function animate(timestamp) {
+  ifTime = 0;
+    centerVideo.play().catch(() => {});
   }
 }
 
@@ -192,24 +361,43 @@ function animate(timestamp) {
   if (!startTime) startTime = timestamp;
   if (!lastFrameTime) lastFrameTime = timestamp;
   const elapsed = (timestamp - startTime) / 1000;
-  const dt = (timestamp - lastFrameTime) / 1000;
+  const dt = (timestamp - last (!startTime) startTime = timestamp;
+  if (!lastFrameTime) lastFrameTime = timestamp;
+  const elapsed = (timestamp - startTime) / 1000;
+  const dtFrameTime) / 1000;
   lastFrameTime = timestamp;
 
   radius = 20 + elapsed * GROWTH_RATE;
+ = (timestamp - lastFrameTime) / 1000;
+  lastFrameTime = timestamp;
+
+  radius = 20 + elapsed  vy += gravity * dt;
+  x += vx * * GROWTH_RATE;
   vy += gravity * dt;
   x += vx * dt;
   y += vy * dt;
+  y += vy * dt;
 
-  // Clamp ball inside arena before trail
+  const arena dt;
+
   const arenaRadius = Math.min(canvas.width, canvas.height) / 2 - RING_WIDTH;
+  letRadius = Math.min(canvas.width, canvas.height) / 2 - RING_WIDTH;
   let dx = x - canvas.width / 2;
+  let dy = y - canvas.height / 2;
+  let dist = Math.hyp dx = x - canvas.width / 2;
   let dy = y - canvas.height / 2;
   let dist = Math.hypot(dx, dy);
   const maxDist = arenaRadius - radius;
+ot(dx, dy);
+  const maxDist = arena  if (dist > maxDist) {
+    dx =Radius - radius;
   if (dist > maxDist) {
     dx = (dx / dist) * maxDist;
+    dy = (dy / dist) * maxDist (dx / dist) * maxDist;
     dy = (dy / dist) * maxDist;
-    x = canvas.width / 2 + dx;
+    x = canvas;
+    x = canvas.width.width
+        x = canvas.width / 2 + dx;
     y = canvas.height / 2 + dy;
   }
 
@@ -227,6 +415,7 @@ function animate(timestamp) {
 
   if (lastCollisionTime && performance.now() - lastCollisionTime > COLLISION_GRACE) {
     if (!audio.paused) audio.pause();
+    if (!centerVideo.paused) centerVideo.pause();
   }
 
   drawFrame(elapsed);
@@ -267,8 +456,8 @@ startBtn.addEventListener('click', () => {
       running = false;
       startBtn.disabled = false;
       if (!audio.paused) audio.pause();
+      if (!centerVideo.paused) centerVideo.pause();
     }, VIDEO_DURATION);
-
   }, 1000);
 });
 
@@ -276,11 +465,11 @@ resetBtn.addEventListener('click', () => {
   running = false;
   startBtn.disabled = false;
   if (!audio.paused) audio.pause();
+  if (!centerVideo.paused) centerVideo.pause();
   resetBall();
   drawFrame(0);
 });
 
-// kick things off with an initial draw
 resetBall();
 drawFrame(0);
 </script>
