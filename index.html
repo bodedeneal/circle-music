@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Gravity Ball – Rainbow Arena</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Bangers&family=Audiowide&display=swap" rel="stylesheet">
   <style>
     html, body {
       margin: 0;
@@ -31,28 +31,46 @@
     input[type="file"] {
       margin-top: 10px;
     }
+    video {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      max-width: 80%;
+      max-height: 80%;
+      z-index: 10;
+    }
   </style>
 </head>
 <body>
 
 <canvas id="canvas" width="1080" height="1920"></canvas>
 
+<video id="centerVideo" muted></video>
+
 <div class="controls">
   <button id="startBtn">Start</button>
   <button id="resetBtn">Reset</button>
+  <br>
   <input type="file" id="audioFile" accept="audio/*">
+  <input type="file" id="videoFile" accept="video/*">
 </div>
 
 <audio id="audio" preload="auto" style="display:none"></audio>
 
 <script>
+// DOM elements
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('resetBtn');
 const audioInput = document.getElementById('audioFile');
+const videoInput = document.getElementById('videoFile');
 const audio = document.getElementById('audio');
+const centerVideo = document.getElementById('centerVideo');
 
+// Ball physics
 let x, y, vx, vy, radius, trail;
 let gravity = 500;
 let elasticity = 1.019;
@@ -61,21 +79,15 @@ let recorder, recordedChunks = [];
 let startTime = 0, lastFrameTime = 0;
 let lastCollisionTime = 0;
 
-const COLLISION_GRACE = 500; // ms
+const COLLISION_GRACE = 500;
 const VIDEO_DURATION = 60000;
 const GROWTH_RATE = 200 / 45;
 const RING_WIDTH = 6;
 
-const BACKGROUND_COLORS = [
-  'rgb(255,200,200)',
-  'rgb(255,180,120)',
-  'rgb(255,255,180)',
-  'rgb(120,255,120)',
-  'rgb(180,220,255)'
-];
+const BACKGROUND_COLORS = ['rgb(255,200,200)','rgb(255,180,120)','rgb(255,255,180)','rgb(120,255,120)','rgb(180,220,255)'];
 const CONTRAST_COLORS = ['#222','#444','#666','#888','#aaa','#ccc','#eee'];
-
-let backgroundColor, ballFillColor;
+const TITLE_TEXTS = ['Watch What Will Happen','Wait Till The End','Don’t Blink','Gravity Unleashed','Bounce to the Beat'];
+const TITLE_FONTS = ['Orbitron','Bangers','Audiowide'];
 
 audioInput.addEventListener('change', () => {
   const file = audioInput.files[0];
@@ -83,6 +95,15 @@ audioInput.addEventListener('change', () => {
     const url = URL.createObjectURL(file);
     audio.src = url;
     audio.load();
+  }
+});
+
+videoInput.addEventListener('change', () => {
+  const file = videoInput.files[0];
+  if (file) {
+    const url = URL.createObjectURL(file);
+    centerVideo.src = url;
+    centerVideo.load();
   }
 });
 
@@ -127,14 +148,15 @@ function drawFrame(elapsed) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   drawArena();
 
+  const title = TITLE_TEXTS[Math.floor(Math.random() * TITLE_TEXTS.length)];
+  const font = TITLE_FONTS[Math.floor(Math.random() * TITLE_FONTS.length)];
   ctx.fillStyle = '#000';
-  ctx.font = 'bold 64px Orbitron';
+  ctx.font = `bold 64px ${font}`;
   ctx.textAlign = 'center';
-  ctx.fillText('Watch What Will Happen', canvas.width / 2, canvas.height * 0.2);
+  ctx.fillText(title, canvas.width / 2, canvas.height * 0.2);
 
   const arenaRadius = Math.min(canvas.width, canvas.height) / 2 - RING_WIDTH;
 
-  // Draw trail clones — rainbow fill, clamped
   for (let i = 0; i < trail.length; i++) {
     let t = trail[i];
     let dx = t.x - canvas.width / 2;
@@ -157,7 +179,6 @@ function drawFrame(elapsed) {
     drawRainbowOutline(clampX, clampY, t.r);
   }
 
-  // Draw main ball — original fill color, clamped
   let dx = x - canvas.width / 2;
   let dy = y - canvas.height / 2;
   const dist = Math.hypot(dx, dy);
@@ -185,6 +206,10 @@ function handleCollisionSound() {
   if (audio.src && audio.paused) {
     audio.currentTime = 0;
     audio.play().catch(()=>{});
+  }
+  if (centerVideo.src && centerVideo.paused) {
+    centerVideo.currentTime = 0;
+    centerVideo.play().catch(()=>{});
   }
 }
 
@@ -227,6 +252,7 @@ function animate(timestamp) {
 
   if (lastCollisionTime && performance.now() - lastCollisionTime > COLLISION_GRACE) {
     if (!audio.paused) audio.pause();
+    if (!centerVideo.paused) centerVideo.pause();
   }
 
   drawFrame(elapsed);
@@ -267,8 +293,8 @@ startBtn.addEventListener('click', () => {
       running = false;
       startBtn.disabled = false;
       if (!audio.paused) audio.pause();
+      if (!centerVideo.paused) centerVideo.pause();
     }, VIDEO_DURATION);
-
   }, 1000);
 });
 
@@ -276,11 +302,12 @@ resetBtn.addEventListener('click', () => {
   running = false;
   startBtn.disabled = false;
   if (!audio.paused) audio.pause();
+  if (!centerVideo.paused) centerVideo.pause();
   resetBall();
   drawFrame(0);
 });
 
-// kick things off with an initial draw
+// Initial draw
 resetBall();
 drawFrame(0);
 </script>
