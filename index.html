@@ -47,6 +47,7 @@
 <body>
 
 <canvas id="canvas" width="1080" height="1920"></canvas>
+
 <video id="centerVideo" muted></video>
 
 <div class="controls">
@@ -60,6 +61,7 @@
 <audio id="audio" preload="auto" style="display:none"></audio>
 
 <script>
+
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const startBtn = document.getElementById('startBtn');
@@ -68,6 +70,7 @@ const audioInput = document.getElementById('audioFile');
 const videoInput = document.getElementById('videoFile');
 const audio = document.getElementById('audio');
 const centerVideo = document.getElementById('centerVideo');
+
 
 let x, y, vx, vy, radius, trail;
 let gravity = 500;
